@@ -332,7 +332,7 @@ class EntregaDetalleView(generics.RetrieveAPIView):
         )
 
 
-class CalificarEntregaView(APIView):
+class CalificarEntregaView(generics.GenericAPIView):
     """
     Endpoint para que el profesor califique una entrega específica.
     """
@@ -343,9 +343,9 @@ class CalificarEntregaView(APIView):
         return (
             "Calificación y retroalimentación de la entrega del estudiante.\n\n"
             "INSTRUCCIONES:\n"
-            "1. En la parte superior puedes ver el contenido y detalles del trabajo enviado por el estudiante.\n"
-            "2. En el formulario inferior (pestaña 'HTML form' o 'Raw data'), introduce la nota en el campo 'Calificacion' y tus comentarios en 'Retroalimentacion'.\n"
-            "3. Haz clic en el botón PATCH para registrar la calificación oficial."
+            "1. En el formulario inferior (pestaña 'HTML form') encontrarás las casillas 'Calificacion' y 'Retroalimentacion'.\n"
+            "2. Solo escribe la nota numérica (ejemplo: 20 o 18.5) y tus comentarios.\n"
+            "3. Haz clic en el botón PATCH para guardar la calificación."
         )
 
     def _obtener_entrega(self):
@@ -378,14 +378,28 @@ class CalificarEntregaView(APIView):
         })
 
     def patch(self, request, *args, **kwargs):
+        return self._procesar_calificacion(request)
+
+    def post(self, request, *args, **kwargs):
+        return self._procesar_calificacion(request)
+
+    def _procesar_calificacion(self, request):
         entrega = self._obtener_entrega()
 
         if entrega.estado == Entrega.Estado.CALIFICADA:
             from rest_framework.exceptions import ValidationError
             raise ValidationError('Esta entrega ya ha sido calificada.')
 
-        serializer = CalificarEntregaSerializer(
-            data=request.data,
+        raw_data = request.data
+        if isinstance(raw_data, (int, float, str)):
+            datos = {'calificacion': raw_data, 'retroalimentacion': ''}
+        elif isinstance(raw_data, dict):
+            datos = raw_data
+        else:
+            datos = {}
+
+        serializer = self.get_serializer(
+            data=datos,
             context={'entrega': entrega, 'request': request},
         )
         serializer.is_valid(raise_exception=True)
@@ -397,6 +411,7 @@ class CalificarEntregaView(APIView):
                 'mensaje': 'Entrega calificada exitosamente.',
                 'calificacion': str(entrega_calificada.calificacion),
                 'valor_maximo': str(entrega_calificada.asignacion.valor_maximo),
+                'retroalimentacion': entrega_calificada.retroalimentacion,
             },
             status=status.HTTP_200_OK,
         )
