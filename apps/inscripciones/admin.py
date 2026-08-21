@@ -10,5 +10,5 @@ class InscripcionAdmin(admin.ModelAdmin):
     search_fields = ('estudiante__email', 'curso__codigo', 'curso__nombre')
     ordering = ('-fecha_inscripcion',)
     readonly_fields = ('fecha_inscripcion', 'fecha_actualizacion')
-    raw_id_fields = ('estudiante', 'curso')
+    autocomplete_fields = ('estudiante', 'curso')
     list_select_related = ('estudiante', 'curso')

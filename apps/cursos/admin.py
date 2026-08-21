@@ -10,5 +10,5 @@ class CursoAdmin(admin.ModelAdmin):
     search_fields = ('codigo', 'nombre', 'profesor__email')
     ordering = ('-fecha_creacion',)
     readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
-    raw_id_fields = ('profesor',)
+    autocomplete_fields = ('profesor',)
     list_select_related = ('profesor',)

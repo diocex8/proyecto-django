@@ -17,7 +17,7 @@ class AsignacionAdmin(admin.ModelAdmin):
     search_fields = ('titulo', 'descripcion', 'curso__nombre', 'curso__codigo', 'curso__profesor__email', 'curso__profesor__username')
     ordering = ('-fecha_entrega',)
     readonly_fields = ('fecha_creacion', 'fecha_actualizacion')
-    raw_id_fields = ('curso',)
+    autocomplete_fields = ('curso',)
     list_select_related = ('curso', 'curso__profesor')
     inlines = [EntregaInline]
 
@@ -37,7 +37,7 @@ class EntregaAdmin(admin.ModelAdmin):
     search_fields = ('estudiante__email', 'estudiante__username', 'estudiante__first_name', 'estudiante__last_name', 'asignacion__titulo', 'asignacion__curso__codigo', 'asignacion__curso__nombre')
     ordering = ('-fecha_entrega',)
     readonly_fields = ('fecha_entrega', 'fecha_calificacion')
-    raw_id_fields = ('estudiante', 'asignacion')
+    autocomplete_fields = ('estudiante', 'asignacion')
     list_select_related = ('estudiante', 'asignacion', 'asignacion__curso')
 
     @admin.display(description='Curso')

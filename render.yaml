@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: DJANGO_ENVIRONMENT
         value: production
+      - key: PYTHON_VERSION
+        value: 3.12.8
       - key: WEB_CONCURRENCY
         value: 4
       - key: ALLOWED_HOSTS
