@@ -194,6 +194,9 @@
         </div>
         <div>
             {% if request.user.is_authenticated %}
+                {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
+                    <a href="/admin/" style="background: #dc2626; color: white; margin-right: 0.5rem;">Panel de Administrador</a>
+                {% endif %}
                 <form method="post" action="/api-auth/logout/?next=/" style="display:inline;">
                     {% csrf_token %}
                     <button type="submit">Cerrar Sesión</button>
@@ -212,6 +215,18 @@
     <main>
         <div class="dashboard-grid">
             
+            {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
+            <!-- Tarjeta: Administración -->
+            <div class="card" style="border-color: #fca5a5;">
+                <div class="card-icon">⚙️</div>
+                <h2 class="card-title">Panel de Control</h2>
+                <p class="card-desc">Acceso directo al panel de administración de Django para gestionar usuarios, permisos y datos del sistema.</p>
+                <div class="btn-group">
+                    <a href="/admin/" class="btn btn-primary" style="background-color: #dc2626;">Panel de Administrador</a>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Tarjeta: Usuarios y Autenticación -->
             <div class="card">
                 <div class="card-icon">👤</div>
