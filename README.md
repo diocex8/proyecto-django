@@ -244,10 +244,10 @@ El campo `errores` solo aparece en errores de validacion.
 
 ## Guia de Uso Completa (Paso a Paso en Navegador Web)
 
-Puedes interactuar con toda la API directamente desde Google Chrome, Firefox o Edge utilizando la interfaz navegable interactiva (Browsable API).
+Puedes interactuar con toda la API directamente desde Google Chrome, Firefox o Edge utilizando la interfaz navegable interactiva (Browsable API). Ademas, cuentas con un **Portal de Acceso (Dashboard)** en la ruta principal para facilitar la navegacion.
 
 > **URL de Produccion (Render)**: `https://api-gestion-academica-4kzs.onrender.com`  
-> **URL de Desarrollo Local**: `http://localhost:8000`
+> **URL de Desarrollo Local**: `http://localhost:8000/` (Aqui veras el Panel Principal)
 
 ---
 

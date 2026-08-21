@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma Educativa API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --radius-md: 0.75rem;
+            --radius-lg: 1rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        main {
+            flex: 1;
+            padding: 3rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text-main);
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            text-decoration: none;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            text-align: center;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .auth-bar {
+            background-color: var(--text-main);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .auth-bar a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            transition: background 0.2s ease;
+        }
+        
+        .auth-bar a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-bar">
+        <div>
+            {% if request.user.is_authenticated %}
+                Hola, <strong>{{ request.user.email }}</strong> ({{ request.user.rol }})
+            {% else %}
+                No has iniciado sesión
+            {% endif %}
+        </div>
+        <div>
+            {% if request.user.is_authenticated %}
+                <a href="/api-auth/logout/?next=/">Cerrar Sesión</a>
+            {% else %}
+                <a href="/api-auth/login/?next=/">Iniciar Sesión</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <header>
+        <h1>Plataforma Educativa</h1>
+        <p class="subtitle">Portal de acceso rápido para Estudiantes y Profesores. Selecciona la acción que deseas realizar.</p>
+    </header>
+
+    <main>
+        <div class="dashboard-grid">
+            
+            <!-- Tarjeta: Usuarios y Autenticación -->
+            <div class="card">
+                <div class="card-icon">👤</div>
+                <h2 class="card-title">Cuentas y Usuarios</h2>
+                <p class="card-desc">Registra una nueva cuenta de estudiante o profesor, o inicia sesión para acceder a la plataforma.</p>
+                <div class="btn-group">
+                    <a href="/api/v1/auth/registro/" class="btn btn-primary">Registrarse</a>
+                    <a href="/api/v1/auth/perfil/" class="btn btn-outline">Ver mi Perfil</a>
+                </div>
+            </div>
+
+            <!-- Tarjeta: Cursos -->
+            <div class="card">
+                <div class="card-icon">📚</div>
+                <h2 class="card-title">Cursos</h2>
+                <p class="card-desc">Explora los cursos disponibles, crea nuevos (si eres profesor) o visualiza en los que estás inscrito.</p>
+                <div class="btn-group">
+                    <a href="/api/v1/cursos/" class="btn btn-primary">Ver Cursos</a>
+                    <a href="/api/v1/inscripciones/" class="btn btn-outline">Mis Inscripciones</a>
+                </div>
+            </div>
+
+            <!-- Tarjeta: Tareas y Entregas -->
+            <div class="card">
+                <div class="card-icon">📝</div>
+                <h2 class="card-title">Asignaciones</h2>
+                <p class="card-desc">Revisa las tareas pendientes de tus cursos, envía tus entregas o califica las de tus estudiantes.</p>
+                <div class="btn-group">
+                    <a href="/api/v1/asignaciones/" class="btn btn-primary">Ver Asignaciones</a>
+                    <a href="/api/v1/asignaciones/1/entregas/" class="btn btn-outline">Ver Entregas (Ejemplo ID:1)</a>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+</body>
+</html>

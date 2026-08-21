@@ -14,7 +14,12 @@ Versionado de API:
 from django.contrib import admin
 from django.urls import path, include
 
+from config.views import IndexView
+
 urlpatterns = [
+    # Pagina de inicio (Dashboard)
+    path('', IndexView.as_view(), name='index'),
+
     # Panel de administracion de Django
     path('admin/', admin.site.urls),
 
