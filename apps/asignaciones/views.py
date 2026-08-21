@@ -87,13 +87,16 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
 
     def _obtener_curso(self, obligatorio=False):
         """
-        Obtiene el curso desde el query param ?curso={id}.
+        Obtiene el curso desde el query param ?curso={id} o request.data['curso'].
         Valida que el profesor tenga permiso sobre ese curso.
         """
         from apps.cursos.models import Curso
         from rest_framework.exceptions import PermissionDenied, NotFound, ParseError
 
         curso_id = self.request.query_params.get('curso')
+        if not curso_id and hasattr(self.request, 'data') and isinstance(self.request.data, dict):
+            curso_id = self.request.data.get('curso')
+
         if not curso_id:
             if obligatorio:
                 raise ParseError(
@@ -162,11 +165,16 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.request.method == 'POST':
-            context['curso'] = self._obtener_curso(obligatorio=True)
+            curso = self._obtener_curso(obligatorio=False)
+            if curso:
+                context['curso'] = curso
         return context
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        curso = self._obtener_curso(obligatorio=True)
+        context = self.get_serializer_context()
+        context['curso'] = curso
+        serializer = self.get_serializer(data=request.data, context=context)
         serializer.is_valid(raise_exception=True)
         asignacion = serializer.save()
         return Response(
