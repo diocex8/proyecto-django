@@ -85,23 +85,22 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
             return AsignacionCrearActualizarSerializer
         return AsignacionListaSerializer
 
-    def _obtener_curso(self):
+    def _obtener_curso(self, obligatorio=False):
         """
         Obtiene el curso desde el query param ?curso={id}.
         Valida que el profesor tenga permiso sobre ese curso.
         """
         from apps.cursos.models import Curso
-        from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
+        from rest_framework.exceptions import PermissionDenied, NotFound, ParseError
 
         curso_id = self.request.query_params.get('curso')
         if not curso_id:
-            # Usar ParseError en lugar de ValidationError para que el
-            # manejador de excepciones lo convierta a JSON correctamente.
-            from rest_framework.exceptions import ParseError
-            raise ParseError(
-                'El parametro "curso" es obligatorio. '
-                'Usa: /api/v1/asignaciones/?curso=<id_del_curso>'
-            )
+            if obligatorio:
+                raise ParseError(
+                    'Debes indicar el ID del curso al que pertenece la asignación. '
+                    'Usa: /api/v1/asignaciones/?curso=<id_del_curso>'
+                )
+            return None
 
         try:
             curso = Curso.objects.select_related('profesor').get(pk=curso_id)
@@ -112,13 +111,13 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
 
         # Para crear: solo el profesor propietario puede agregar asignaciones
         if self.request.method == 'POST':
-            if not self.request.user.es_profesor or curso.profesor != self.request.user:
+            if not getattr(self.request.user, 'es_profesor', False) or curso.profesor != self.request.user:
                 raise PermissionDenied(
                     'Solo el profesor propietario del curso puede agregar asignaciones.'
                 )
 
         # Para listar: el estudiante debe estar inscrito
-        if self.request.method == 'GET' and self.request.user.es_estudiante:
+        if self.request.method == 'GET' and getattr(self.request.user, 'es_estudiante', False):
             if not Inscripcion.objects.filter(
                 curso=curso,
                 estudiante=self.request.user,
@@ -131,15 +130,39 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
         return curso
 
     def get_queryset(self):
-        curso = self._obtener_curso()
-        return Asignacion.objects.filter(curso=curso).annotate(
-            total_entregas_anotado=Count('entregas', distinct=True)
-        ).order_by('fecha_entrega')
+        usuario = self.request.user
+        if not usuario or not usuario.is_authenticated:
+            return Asignacion.objects.none()
+
+        curso = self._obtener_curso(obligatorio=False)
+        if curso:
+            return Asignacion.objects.filter(curso=curso).annotate(
+                total_entregas_anotado=Count('entregas', distinct=True)
+            ).order_by('fecha_entrega')
+
+        # Si no se filtra por curso específico, listar asignaciones según rol
+        if getattr(usuario, 'es_profesor', False):
+            return Asignacion.objects.filter(curso__profesor=usuario).annotate(
+                total_entregas_anotado=Count('entregas', distinct=True)
+            ).order_by('fecha_entrega')
+        elif getattr(usuario, 'es_estudiante', False):
+            return Asignacion.objects.filter(
+                curso__inscripciones__estudiante=usuario,
+                curso__inscripciones__estado=Inscripcion.Estado.ACTIVA,
+            ).annotate(
+                total_entregas_anotado=Count('entregas', distinct=True)
+            ).order_by('fecha_entrega')
+        elif getattr(usuario, 'es_administrador', False):
+            return Asignacion.objects.all().annotate(
+                total_entregas_anotado=Count('entregas', distinct=True)
+            ).order_by('fecha_entrega')
+
+        return Asignacion.objects.none()
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         if self.request.method == 'POST':
-            context['curso'] = self._obtener_curso()
+            context['curso'] = self._obtener_curso(obligatorio=True)
         return context
 
     def create(self, request, *args, **kwargs):
