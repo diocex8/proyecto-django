@@ -207,6 +207,18 @@ REST_FRAMEWORK = {
     ),
     # Manejador de excepciones personalizado para respuestas estandarizadas
     'EXCEPTION_HANDLER': 'config.exceptions.manejador_de_excepciones',
+    # Formatos de fecha y hora aceptados (flexibilidad para ingreso de usuarios)
+    'DATETIME_INPUT_FORMATS': (
+        'iso-8601',
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M',
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d',
+        '%d/%m/%Y %H:%M:%S',
+        '%d/%m/%Y %H:%M',
+        '%d/%m/%Y',
+    ),
 }
 
 # ===========================================================================
