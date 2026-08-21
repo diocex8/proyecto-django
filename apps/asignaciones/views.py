@@ -171,9 +171,10 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
         return context
 
     def create(self, request, *args, **kwargs):
-        curso = self._obtener_curso(obligatorio=True)
         context = self.get_serializer_context()
-        context['curso'] = curso
+        curso = self._obtener_curso(obligatorio=False)
+        if curso:
+            context['curso'] = curso
         serializer = self.get_serializer(data=request.data, context=context)
         serializer.is_valid(raise_exception=True)
         asignacion = serializer.save()

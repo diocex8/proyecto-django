@@ -6,6 +6,7 @@ Serializadores del dominio de asignaciones y entregas.
 
 from rest_framework import serializers
 
+from apps.cursos.models import Curso
 from apps.usuarios.serializers import UsuarioResumenSerializer
 from .models import Asignacion, Entrega
 
@@ -72,16 +73,27 @@ class AsignacionDetalleSerializer(serializers.ModelSerializer):
 class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
     """
     Serializador para crear y actualizar asignaciones.
-    El curso se pasa en el contexto de la vista (no en el body del request)
-    para evitar que el profesor pueda asignar tareas a cursos que no son suyos.
+    Permite seleccionar el curso directamente desde el formulario HTML/JSON
+    o recibirlo a traves del contexto de la vista.
     """
+    curso = serializers.PrimaryKeyRelatedField(
+        queryset=Curso.objects.all(),
+        required=False,
+        help_text='Curso al que pertenece la asignación.',
+    )
 
     class Meta:
         model = Asignacion
         fields = (
-            'titulo', 'descripcion', 'tipo',
+            'curso', 'titulo', 'descripcion', 'tipo',
             'valor_maximo', 'fecha_entrega', 'permite_entrega_tardia',
         )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and getattr(request.user, 'es_profesor', False):
+            self.fields['curso'].queryset = Curso.objects.filter(profesor=request.user)
 
     def validate_fecha_entrega(self, value):
         """La fecha de entrega debe ser futura al momento de crear la asignacion."""
@@ -99,9 +111,25 @@ class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        curso = attrs.get('curso') or self.context.get('curso')
+
+        if not curso and self.instance is None:
+            raise serializers.ValidationError({
+                'curso': 'Debes seleccionar el curso al que pertenece la asignación.'
+            })
+
+        if curso and request and getattr(request.user, 'es_profesor', False):
+            if curso.profesor != request.user:
+                raise serializers.ValidationError({
+                    'curso': 'Solo puedes crear asignaciones en tus propios cursos.'
+                })
+
+        return attrs
+
     def create(self, validated_data):
-        """El curso se inyecta desde la vista via perform_create."""
-        curso = self.context['curso']
+        curso = validated_data.pop('curso', None) or self.context.get('curso')
         return Asignacion.objects.create(curso=curso, **validated_data)
 
 
