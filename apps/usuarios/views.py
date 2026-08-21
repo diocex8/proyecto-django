@@ -1,0 +1,132 @@
+"""
+apps/usuarios/views.py
+
+Vistas del dominio de usuarios.
+
+Decision: Se usan GenericAPIView con mixins especificos (en lugar de ViewSets)
+porque los endpoints de autenticacion no siguen el patron REST estandar de
+recursos (no son CRUD puro), tienen logica especial (registro, cambio de
+contrasena) y se benefician de la claridad de vistas individuales.
+"""
+
+import logging
+
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+from .models import Usuario
+from .serializers import (
+    TokenPersonalizadoObtainSerializer,
+    UsuarioDetalleSerializer,
+    RegistroUsuarioSerializer,
+    ActualizarPerfilSerializer,
+    CambiarPasswordSerializer,
+)
+from .services import obtener_estadisticas_estudiante, obtener_estadisticas_profesor
+
+logger = logging.getLogger('gestion_academica')
+
+
+class LoginView(TokenObtainPairView):
+    """
+    Endpoint de autenticacion. Devuelve par de tokens JWT.
+    POST /api/v1/auth/token/
+    """
+    serializer_class = TokenPersonalizadoObtainSerializer
+    permission_classes = [AllowAny]
+
+
+class RefrescarTokenView(TokenRefreshView):
+    """
+    Endpoint para renovar el token de acceso usando el refresh token.
+    POST /api/v1/auth/token/refresh/
+    """
+    permission_classes = [AllowAny]
+
+
+class RegistroView(generics.CreateAPIView):
+    """
+    Endpoint de registro de nuevos usuarios.
+    POST /api/v1/auth/registro/
+    """
+    serializer_class = RegistroUsuarioSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        usuario = serializer.save()
+        return Response(
+            {
+                'exito': True,
+                'mensaje': 'Usuario registrado exitosamente.',
+                'usuario': {
+                    'id': usuario.pk,
+                    'email': usuario.email,
+                    'rol': usuario.rol,
+                },
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PerfilView(generics.RetrieveUpdateAPIView):
+    """
+    Endpoint para ver y actualizar el perfil del usuario autenticado.
+    GET  /api/v1/auth/perfil/
+    PATCH /api/v1/auth/perfil/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        """
+        Patron de serializer dinamico segun el metodo HTTP:
+        - GET: Serializador de lectura (datos completos, campos calculados).
+        - PATCH/PUT: Serializador de escritura (solo campos modificables).
+        """
+        if self.request.method in ('PUT', 'PATCH'):
+            return ActualizarPerfilSerializer
+        return UsuarioDetalleSerializer
+
+    def get_object(self):
+        """Retorna siempre el usuario autenticado. No hay parametro de ID."""
+        return self.request.user
+
+    def retrieve(self, request, *args, **kwargs):
+        usuario = self.get_object()
+        serializer = self.get_serializer(usuario)
+        data = serializer.data
+
+        # Agregar estadisticas desde la capa de servicio
+        if usuario.es_estudiante:
+            data['estadisticas'] = obtener_estadisticas_estudiante(usuario)
+        elif usuario.es_profesor:
+            data['estadisticas'] = obtener_estadisticas_profesor(usuario)
+
+        return Response({'exito': True, 'datos': data})
+
+
+class CambiarPasswordView(APIView):
+    """
+    Endpoint para cambiar la contrasena del usuario autenticado.
+    POST /api/v1/auth/cambiar-password/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = CambiarPasswordSerializer(
+            data=request.data,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {
+                'exito': True,
+                'mensaje': 'Contrasena actualizada exitosamente. Vuelve a iniciar sesion.',
+            },
+            status=status.HTTP_200_OK,
+        )

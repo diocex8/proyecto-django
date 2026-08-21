@@ -1,0 +1,47 @@
+# Archivos que NUNCA deben subirse al repositorio
+
+# Variables de entorno con credenciales reales
+.env
+
+# Entorno virtual de Python
+venv/
+env/
+.venv/
+
+# Bytecode de Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Archivos de base de datos locales (SQLite)
+*.sqlite3
+db.sqlite3
+
+# Archivos estaticos generados
+staticfiles/
+static/
+
+# Archivos de medios subidos por usuarios
+media/
+
+# Logs del sistema
+logs/
+*.log
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Configuracion de IDEs
+.idea/
+.vscode/
+*.swp
+
+# Cobertura de pruebas
+.coverage
+htmlcov/
+
+# Archivos de distribucion de Python
+dist/
+build/
+*.egg-info/

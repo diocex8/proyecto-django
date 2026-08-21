@@ -1,0 +1,6 @@
+# Dependencias exclusivas del entorno de produccion
+-r base.txt
+
+# No se agregan extras en produccion por ahora
+# Si se necesita Sentry para monitoreo de errores:
+# sentry-sdk==2.19.0

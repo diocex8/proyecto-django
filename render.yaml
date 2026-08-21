@@ -1,0 +1,30 @@
+databases:
+  - name: db-gestion-academica
+    databaseName: gestionacademica
+    user: gestionuser
+    plan: free
+
+services:
+  - type: web
+    name: api-gestion-academica
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: db-gestion-academica
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DJANGO_ENVIRONMENT
+        value: production
+      - key: WEB_CONCURRENCY
+        value: 4
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "http://localhost:3000,https://render.com"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "http://localhost:3000,https://render.com"

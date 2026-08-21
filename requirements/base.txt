@@ -1,0 +1,30 @@
+# ============================================================
+# Dependencias base compartidas entre todos los entornos
+# ============================================================
+
+# Framework principal
+Django==5.1.4
+
+# Django REST Framework
+djangorestframework==3.15.2
+
+# Autenticacion JWT
+djangorestframework-simplejwt==5.3.1
+
+# Variables de entorno
+django-environ==0.11.2
+
+# Driver de PostgreSQL
+psycopg2-binary==2.9.10
+
+# CORS
+django-cors-headers==4.6.0
+
+# Archivos estaticos en produccion
+whitenoise==6.8.2
+
+# Servidor WSGI para produccion
+gunicorn==23.0.0
+
+# Filtrado avanzado de querysets
+django-filter==24.3

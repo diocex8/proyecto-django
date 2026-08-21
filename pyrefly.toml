@@ -1,0 +1,15 @@
+# pyrefly.toml
+#
+# Configuracion de Pyrefly (verificador de tipos de Python).
+# Le indica que interprete usar para resolver los imports del proyecto.
+#
+# Sin esta configuracion, Pyrefly usa el Python del sistema (que no tiene
+# django, rest_framework, etc.) y muestra falsos errores "Cannot find module".
+
+[pyrefly]
+# Apunta al Python del venv donde estan instalados todos los paquetes
+python_interpreter = "venv/Scripts/python.exe"
+
+# Rutas adicionales para resolver imports como "apps.usuarios.models"
+# (necesario porque los modulos de apps/ se importan desde la raiz del proyecto)
+search_path = ["."]
