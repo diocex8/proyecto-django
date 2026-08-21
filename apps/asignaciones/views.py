@@ -334,14 +334,19 @@ class EntregaDetalleView(generics.RetrieveAPIView):
 
 class CalificarEntregaView(APIView):
     """
-    Endpoint para que el profesor califique una entrega especifica.
-    PATCH /api/v1/asignaciones/{asignacion_id}/entregas/{pk}/calificar/
-
-    Decision: Se usa APIView en lugar de UpdateAPIView porque la operacion
-    de calificacion es un comando de dominio (no una edicion de campos),
-    y se delega completamente al metodo Entrega.calificar() via el serializador.
+    Endpoint para que el profesor califique una entrega específica.
     """
+    serializer_class = CalificarEntregaSerializer
     permission_classes = [IsAuthenticated, EsProfesor]
+
+    def get_view_description(self, html=False):
+        return (
+            "Calificación y retroalimentación de la entrega del estudiante.\n\n"
+            "INSTRUCCIONES:\n"
+            "1. En la parte superior puedes ver el contenido y detalles del trabajo enviado por el estudiante.\n"
+            "2. En el formulario inferior (pestaña 'HTML form' o 'Raw data'), introduce la nota en el campo 'Calificacion' y tus comentarios en 'Retroalimentacion'.\n"
+            "3. Haz clic en el botón PATCH para registrar la calificación oficial."
+        )
 
     def _obtener_entrega(self):
         from rest_framework.exceptions import NotFound, PermissionDenied
@@ -362,6 +367,15 @@ class CalificarEntregaView(APIView):
             )
 
         return entrega
+
+    def get(self, request, *args, **kwargs):
+        """Muestra los detalles de la entrega a calificar y habilita el formulario interactivo."""
+        entrega = self._obtener_entrega()
+        serializer = EntregaDetalleSerializer(entrega)
+        return Response({
+            'mensaje': 'Detalles de la entrega enviada por el estudiante:',
+            'entrega': serializer.data,
+        })
 
     def patch(self, request, *args, **kwargs):
         entrega = self._obtener_entrega()
