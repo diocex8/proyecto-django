@@ -55,6 +55,23 @@ class RegistroView(generics.CreateAPIView):
     serializer_class = RegistroUsuarioSerializer
     permission_classes = [AllowAny]
 
+    def get(self, request, *args, **kwargs):
+        """
+        Permite visualizar instrucciones y el formulario de registro en el navegador.
+        """
+        return Response({
+            'mensaje': 'Completa el formulario inferior para registrar un nuevo usuario (estudiante o profesor).',
+            'roles_disponibles': ['estudiante', 'profesor'],
+            'ejemplo_cuerpo': {
+                'email': 'usuario@correo.com',
+                'username': 'usuario1',
+                'password': 'Password123!',
+                'first_name': 'Nombre',
+                'last_name': 'Apellido',
+                'rol': 'estudiante'
+            }
+        })
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -50,7 +50,26 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
 # Origenes de confianza para peticiones CSRF (incluir protocolo + dominio)
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
+    'https://*.onrender.com',
+    'http://localhost:3000',
+    'http://127.0.0.1:8000',
+])
+if 'https://*.onrender.com' not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append('https://*.onrender.com')
+
+# ===========================================================================
+# Django REST Framework (Habilitar interfaz visual en navegador)
+# ===========================================================================
+REST_FRAMEWORK['DEFAULT_RENDERER_CLASSES'] = (
+    'rest_framework.renderers.JSONRenderer',
+    'rest_framework.renderers.BrowsableAPIRenderer',
+)
+
+REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
+    'rest_framework_simplejwt.authentication.JWTAuthentication',
+    'rest_framework.authentication.SessionAuthentication',
+)
 
 # ===========================================================================
 # CORS en produccion
