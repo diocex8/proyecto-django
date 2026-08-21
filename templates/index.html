@@ -162,7 +162,7 @@
             align-items: center;
         }
         
-        .auth-bar a {
+        .auth-bar a, .auth-bar button {
             color: white;
             text-decoration: none;
             font-weight: 500;
@@ -170,10 +170,14 @@
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
             background: rgba(255,255,255,0.1);
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1rem;
             transition: background 0.2s ease;
         }
         
-        .auth-bar a:hover {
+        .auth-bar a:hover, .auth-bar button:hover {
             background: rgba(255,255,255,0.2);
         }
     </style>
@@ -190,7 +194,10 @@
         </div>
         <div>
             {% if request.user.is_authenticated %}
-                <a href="/api-auth/logout/?next=/">Cerrar Sesión</a>
+                <form method="post" action="/api-auth/logout/?next=/" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit">Cerrar Sesión</button>
+                </form>
             {% else %}
                 <a href="/api-auth/login/?next=/">Iniciar Sesión</a>
             {% endif %}
