@@ -2,6 +2,8 @@
 
 # Variables de entorno con credenciales reales
 .env
+.env.*
+!.env.example
 
 # Entorno virtual de Python
 venv/
@@ -32,14 +34,18 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Configuracion de IDEs
+# Configuracion de IDEs y editores
 .idea/
 .vscode/
 *.swp
+*.swo
 
-# Cobertura de pruebas
+# Cobertura y cache de pruebas / herramientas
 .coverage
 htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Archivos de distribucion de Python
 dist/
