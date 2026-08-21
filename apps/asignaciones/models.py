@@ -112,6 +112,8 @@ class Asignacion(models.Model):
     @property
     def esta_vencida(self):
         """Indica si la fecha de entrega ya paso."""
+        if not self.fecha_entrega:
+            return False
         return timezone.now() > self.fecha_entrega
 
     @property
