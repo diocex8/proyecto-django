@@ -79,35 +79,23 @@ LOGGING = {
         },
     },
     'handlers': {
-        'archivo_errores': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'errores.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB por archivo
-            'backupCount': 5,              # Guarda hasta 5 archivos de respaldo
+        'consola': {
+            'class': 'logging.StreamHandler',
             'formatter': 'produccion',
-            'level': 'WARNING',
-        },
-        'archivo_general': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'aplicacion.log',
-            'maxBytes': 1024 * 1024 * 10,
-            'backupCount': 5,
-            'formatter': 'produccion',
-            'level': 'INFO',
         },
     },
     'root': {
-        'handlers': ['archivo_general'],
+        'handlers': ['consola'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['archivo_errores'],
+            'handlers': ['consola'],
             'level': 'WARNING',
             'propagate': False,
         },
         'gestion_academica': {
-            'handlers': ['archivo_general', 'archivo_errores'],
+            'handlers': ['consola'],
             'level': 'INFO',
             'propagate': False,
         },
