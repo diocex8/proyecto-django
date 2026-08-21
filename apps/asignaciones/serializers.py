@@ -142,14 +142,23 @@ class EntregaListaSerializer(serializers.ModelSerializer):
     estudiante = UsuarioResumenSerializer(read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
     asignacion_titulo = serializers.CharField(source='asignacion.titulo', read_only=True)
+    url_calificar = serializers.SerializerMethodField()
+    url_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = Entrega
         fields = (
             'id', 'asignacion_titulo', 'estudiante', 'estado',
             'estado_display', 'calificacion', 'fecha_entrega',
+            'url_calificar', 'url_detalle',
         )
         read_only_fields = fields
+
+    def get_url_calificar(self, obj):
+        return f"/api/v1/asignaciones/{obj.asignacion_id}/entregas/{obj.id}/calificar/"
+
+    def get_url_detalle(self, obj):
+        return f"/api/v1/asignaciones/{obj.asignacion_id}/entregas/{obj.id}/"
 
 
 class EntregaDetalleSerializer(serializers.ModelSerializer):

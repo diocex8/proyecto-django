@@ -218,7 +218,6 @@
             {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
             <!-- Tarjeta: Administración -->
             <div class="card" style="border-color: #fca5a5;">
-                <div class="card-icon">⚙️</div>
                 <h2 class="card-title">Panel de Control</h2>
                 <p class="card-desc">Acceso directo al panel de administración de Django para gestionar usuarios, permisos y datos del sistema.</p>
                 <div class="btn-group">
@@ -229,7 +228,6 @@
 
             <!-- Tarjeta: Usuarios y Autenticación -->
             <div class="card">
-                <div class="card-icon">👤</div>
                 <h2 class="card-title">Cuentas y Usuarios</h2>
                 <p class="card-desc">Registra una nueva cuenta de estudiante o profesor, o inicia sesión para acceder a la plataforma.</p>
                 <div class="btn-group">
@@ -240,7 +238,6 @@
 
             <!-- Tarjeta: Cursos -->
             <div class="card">
-                <div class="card-icon">📚</div>
                 <h2 class="card-title">Cursos</h2>
                 <p class="card-desc">Explora los cursos disponibles, crea nuevos (si eres profesor) o visualiza en los que estás inscrito.</p>
                 <div class="btn-group">
@@ -251,12 +248,11 @@
 
             <!-- Tarjeta: Tareas y Entregas -->
             <div class="card">
-                <div class="card-icon">📝</div>
                 <h2 class="card-title">Asignaciones</h2>
                 <p class="card-desc">Revisa las tareas pendientes de tus cursos, envía tus entregas o califica las de tus estudiantes.</p>
                 <div class="btn-group">
                     <a href="/api/v1/asignaciones/" class="btn btn-primary">Ver Asignaciones</a>
-                    <a href="/api/v1/asignaciones/1/entregas/" class="btn btn-outline">Ver Entregas (Ejemplo ID:1)</a>
+                    <a href="/api/v1/cursos/" class="btn btn-outline">Ver Cursos y Asignaciones</a>
                 </div>
             </div>
 

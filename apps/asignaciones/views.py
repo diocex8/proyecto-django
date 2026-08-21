@@ -50,29 +50,41 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
     def get_view_description(self, html=False):
         user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
 
-        if user and user.is_authenticated and getattr(user, 'es_estudiante', False):
+        if user and user.is_authenticated and getattr(user, 'es_profesor', False):
+            from apps.cursos.models import Curso
+            cursos = Curso.objects.filter(profesor=user).order_by('nombre')
+            cursos_nav = "\n\n**Filtrar asignaciones por curso:**\n- [Ver todas mis asignaciones](/api/v1/asignaciones/)\n"
+            for c in cursos:
+                cursos_nav += f"- [Curso {c.codigo}: {c.nombre}](/api/v1/asignaciones/?curso={c.id})\n"
+
             return (
-                "Listado de asignaciones del curso.\n\n"
-                "INSTRUCCIONES:\n"
-                "1. Revisa las asignaciones publicadas para este curso en la lista inferior.\n"
-                "2. Cada asignación incluye el campo 'url_entrega' con el enlace directo para enviar tu tarea.\n"
-                "3. Para entregar tu trabajo, accede al enlace indicado (ejemplo: /api/v1/asignaciones/1/entregas/) "
-                "y envía un POST con el formato: {\"contenido\": \"Tu solución o desarrollo de la tarea\"}.\n"
-                "4. Recuerda que solo se permite una entrega por asignación y debe enviarse antes de la fecha límite."
+                "### Gestion y Creacion de Asignaciones\n\n"
+                "**Instrucciones:**\n"
+                "1. En el formulario inferior puedes crear una nueva tarea seleccionando el **Curso** en el menu desplegable.\n"
+                "2. En la lista de resultados inferior, cada asignacion cuenta con el enlace `url_entrega` para ver y calificar las entregas de los estudiantes."
+                f"{cursos_nav}"
             )
-        elif user and user.is_authenticated and getattr(user, 'es_profesor', False):
+        elif user and user.is_authenticated and getattr(user, 'es_estudiante', False):
+            from apps.cursos.models import Curso
+            cursos = Curso.objects.filter(
+                inscripciones__estudiante=user,
+                inscripciones__estado=Inscripcion.Estado.ACTIVA,
+            ).order_by('nombre')
+            cursos_nav = "\n\n**Filtrar asignaciones por curso:**\n- [Ver todas mis asignaciones](/api/v1/asignaciones/)\n"
+            for c in cursos:
+                cursos_nav += f"- [Curso {c.codigo}: {c.nombre}](/api/v1/asignaciones/?curso={c.id})\n"
+
             return (
-                "Gestión y creación de asignaciones del curso.\n\n"
-                "INSTRUCCIONES:\n"
-                "1. En el formulario inferior puedes crear una nueva asignación para este curso.\n"
-                "2. Completa los campos: titulo, descripcion, tipo (tarea, examen, proyecto), fecha_entrega y valor_maximo.\n"
-                "3. Las asignaciones creadas estarán disponibles automáticamente para los estudiantes inscritos en el curso."
+                "### Mis Asignaciones Academicas\n\n"
+                "**Instrucciones:**\n"
+                "1. Revisa las tareas pendientes de tus cursos en la lista inferior.\n"
+                "2. Haz clic en el enlace `url_entrega` de la asignacion deseada para enviar tu solucion."
+                f"{cursos_nav}"
             )
 
         return (
             "Listado de asignaciones del curso.\n\n"
-            "INSTRUCCIONES:\n"
-            "Inicia sesión para visualizar las opciones e instrucciones específicas de tu rol (Estudiante o Profesor)."
+            "Inicia sesion para visualizar tus cursos y asignaciones."
         )
 
     def get_permissions(self):
@@ -244,30 +256,76 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
 
     def get_view_description(self, html=False):
         user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
+        asignacion_actual = None
+        try:
+            asignacion_actual = self._obtener_asignacion()
+        except Exception:
+            pass
+
+        info_asignacion = ""
+        if asignacion_actual:
+            info_asignacion = (
+                f"### Asignacion: {asignacion_actual.titulo}\n"
+                f"- **Curso:** {asignacion_actual.curso.nombre} ({asignacion_actual.curso.codigo})\n"
+                f"- **Tipo:** {asignacion_actual.get_tipo_display()} | **Valor Maximo:** {asignacion_actual.valor_maximo} pts\n"
+                f"- **Fecha limite:** {asignacion_actual.fecha_entrega.strftime('%d/%m/%Y %H:%M')}\n\n"
+            )
+
+        otras_asignaciones_nav = ""
+        if user and user.is_authenticated:
+            if getattr(user, 'es_profesor', False):
+                asignaciones_prof = Asignacion.objects.filter(
+                    curso__profesor=user
+                ).select_related('curso').order_by('curso__nombre', 'fecha_entrega')
+
+                if asignaciones_prof.exists():
+                    otras_asignaciones_nav = "\n\n---\n### Cambiar de Asignacion (Clic para ver entregas):\n"
+                    curso_actual_nombre = None
+                    for asig in asignaciones_prof:
+                        if asig.curso.nombre != curso_actual_nombre:
+                            curso_actual_nombre = asig.curso.nombre
+                            otras_asignaciones_nav += f"\n**Curso: {curso_actual_nombre}**\n"
+                        icono = "*(Viendo actualmente)*" if asignacion_actual and asig.id == asignacion_actual.id else ""
+                        otras_asignaciones_nav += f"- [{asig.titulo}](/api/v1/asignaciones/{asig.id}/entregas/) {icono}\n"
+
+            elif getattr(user, 'es_estudiante', False):
+                asignaciones_est = Asignacion.objects.filter(
+                    curso__inscripciones__estudiante=user,
+                    curso__inscripciones__estado=Inscripcion.Estado.ACTIVA,
+                ).select_related('curso').order_by('curso__nombre', 'fecha_entrega')
+
+                if asignaciones_est.exists():
+                    otras_asignaciones_nav = "\n\n---\n### Mis Asignaciones (Clic para enviar o ver entrega):\n"
+                    curso_actual_nombre = None
+                    for asig in asignaciones_est:
+                        if asig.curso.nombre != curso_actual_nombre:
+                            curso_actual_nombre = asig.curso.nombre
+                            otras_asignaciones_nav += f"\n**Curso: {curso_actual_nombre}**\n"
+                        icono = "*(Viendo actualmente)*" if asignacion_actual and asig.id == asignacion_actual.id else ""
+                        otras_asignaciones_nav += f"- [{asig.titulo}](/api/v1/asignaciones/{asig.id}/entregas/) {icono}\n"
 
         if user and user.is_authenticated and getattr(user, 'es_estudiante', False):
             return (
-                "Gestión y envío de tu entrega para esta asignación.\n\n"
-                "INSTRUCCIONES:\n"
-                "1. En el formulario inferior puedes enviar la solución de tu asignación.\n"
-                "2. Envía un POST con el formato: {\"contenido\": \"Escribe aquí tu desarrollo o respuesta...\"}.\n"
-                "3. Reglas: Solo se permite una entrega por estudiante y debe enviarse antes de la fecha límite.\n"
-                "4. En la parte superior puedes ver el estado, calificación y retroalimentación de tu entrega."
+                f"{info_asignacion}"
+                "### Envio de Solucion\n\n"
+                "**Instrucciones:**\n"
+                "1. En el formulario inferior puedes redactar tu entrega (en formato JSON: `{\"contenido\": \"Tu texto...\"}`).\n"
+                "2. Recuerda que solo se permite una entrega por asignacion antes de la fecha limite.\n"
+                f"{otras_asignaciones_nav}"
             )
         elif user and user.is_authenticated and getattr(user, 'es_profesor', False):
             return (
-                "Revisión y calificación de entregas de los estudiantes.\n\n"
-                "INSTRUCCIONES:\n"
-                "1. En la lista inferior puedes revisar todas las entregas realizadas por los estudiantes.\n"
-                "2. Para calificar una entrega específica, envía un POST a: "
-                "/api/v1/asignaciones/{id_asignacion}/entregas/{id_entrega}/calificar/ "
-                "con el body: {\"calificacion\": 18.5, \"retroalimentacion\": \"Comentario del profesor\"}."
+                f"{info_asignacion}"
+                "### Revision y Calificacion de Entregas\n\n"
+                "**Instrucciones:**\n"
+                "1. En la lista inferior (en `resultados`) veras las entregas de tus estudiantes.\n"
+                "2. Para calificar a un estudiante, haz clic en el enlace `url_calificar` de su entrega.\n"
+                f"{otras_asignaciones_nav}"
             )
 
         return (
-            "Gestión y consulta de entregas de la asignación.\n\n"
-            "INSTRUCCIONES:\n"
-            "Inicia sesión para ver o enviar entregas según tu rol."
+            "Gestion y consulta de entregas de la asignacion.\n\n"
+            "Inicia sesion para ver o enviar entregas segun tu rol."
         )
 
     def get_permissions(self):
