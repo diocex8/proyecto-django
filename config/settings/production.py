@@ -71,6 +71,10 @@ REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
     'rest_framework.authentication.SessionAuthentication',
 )
 
+# WhiteNoise sin modo estricto para evitar errores 500 si falta algun archivo en el manifest
+WHITENOISE_MANIFEST_STRICT = False
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
 # ===========================================================================
 # CORS en produccion
 # ===========================================================================
