@@ -1,5 +1,4 @@
-# Archivos que NUNCA deben subirse al repositorio
-
+.agents
 # Variables de entorno con credenciales reales
 .env
 .env.*
