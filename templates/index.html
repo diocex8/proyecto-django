@@ -510,7 +510,13 @@
                     {% else %}
                         <span class="badge-role badge-estudiante">Estudiante</span>
                     {% endif %}
-                    <span style="color:#64748b; font-size:0.875rem;">{{ request.user.username }}</span>
+                    <span style="color:#64748b; font-size:0.875rem; margin-right: 0.25rem;">{{ request.user.username }}</span>
+                    <form method="post" action="/api-auth/logout/?next=/" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:#ef4444; color:white; border:none; padding:0.35rem 0.75rem; border-radius:0.4rem; font-size:0.75rem; font-weight:600; cursor:pointer; font-family:inherit;">Cerrar Sesión</button>
+                    </form>
+                {% else %}
+                    <a href="/api-auth/login/?next=/" style="background:#2563eb; color:white; padding:0.35rem 0.75rem; border-radius:0.4rem; font-size:0.75rem; font-weight:600; text-decoration:none;">Iniciar Sesión</a>
                 {% endif %}
             </div>
         </div>
