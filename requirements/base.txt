@@ -28,3 +28,6 @@ gunicorn==23.0.0
 
 # Filtrado avanzado de querysets
 django-filter==24.3
+
+# Renderizado Markdown en la interfaz navegable de DRF
+markdown==3.7

@@ -13,7 +13,9 @@ reflejar la jerarquia del dominio:
 import logging
 
 from django.db.models import Count
-from rest_framework import generics, status
+from django.utils.safestring import mark_safe
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -47,45 +49,65 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
     Listado y gestion de asignaciones del curso.
     """
 
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['tipo', 'permite_entrega_tardia']
+    search_fields = ['titulo', 'descripcion', 'curso__nombre', 'curso__codigo']
+    ordering_fields = ['fecha_entrega', 'valor_maximo', 'fecha_creacion']
+    ordering = ['fecha_entrega']
+
     def get_view_description(self, html=False):
         user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
 
         if user and user.is_authenticated and getattr(user, 'es_profesor', False):
             from apps.cursos.models import Curso
             cursos = Curso.objects.filter(profesor=user).order_by('nombre')
-            cursos_nav = "\n\n**Filtrar asignaciones por curso:**\n- [Ver todas mis asignaciones](/api/v1/asignaciones/)\n"
-            for c in cursos:
-                cursos_nav += f"- [Curso {c.codigo}: {c.nombre}](/api/v1/asignaciones/?curso={c.id})\n"
 
-            return (
-                "### Gestion y Creacion de Asignaciones\n\n"
-                "**Instrucciones:**\n"
-                "1. En el formulario inferior puedes crear una nueva tarea seleccionando el **Curso** en el menu desplegable.\n"
-                "2. En la lista de resultados inferior, cada asignacion cuenta con el enlace `url_entrega` para ver y calificar las entregas de los estudiantes."
-                f"{cursos_nav}"
+            buttons_html = '<div style="margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px;">'
+            buttons_html += '<a href="/api/v1/asignaciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Ver Todas</a>'
+            for c in cursos:
+                buttons_html += f'<a href="/api/v1/asignaciones/?curso={c.id}" style="background: #2563eb; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Curso {c.codigo}: {c.nombre}</a>'
+            buttons_html += '</div>'
+
+            content = (
+                '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
+                '<h3 style="margin-top: 0; color: #0f172a;">Gestion y Creacion de Asignaciones</h3>'
+                '<p style="color: #475569; margin-bottom: 10px; font-size: 14px;">'
+                '1. En el formulario inferior puedes crear una nueva tarea seleccionando el <strong>Curso</strong> en el menu desplegable.<br>'
+                '2. En la lista inferior, haz clic en el enlace <code>url_entrega</code> de cualquier asignacion para ver y calificar a los estudiantes.'
+                '</p>'
+                '<h4 style="margin: 12px 0 6px 0; color: #1e293b;">Filtrar asignaciones por curso (Haz clic para filtrar):</h4>'
+                f'{buttons_html}'
+                '</div>'
             )
+            return mark_safe(content) if html else "Gestion y Creacion de Asignaciones"
+
         elif user and user.is_authenticated and getattr(user, 'es_estudiante', False):
             from apps.cursos.models import Curso
             cursos = Curso.objects.filter(
                 inscripciones__estudiante=user,
                 inscripciones__estado=Inscripcion.Estado.ACTIVA,
             ).order_by('nombre')
-            cursos_nav = "\n\n**Filtrar asignaciones por curso:**\n- [Ver todas mis asignaciones](/api/v1/asignaciones/)\n"
+
+            buttons_html = '<div style="margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px;">'
+            buttons_html += '<a href="/api/v1/asignaciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Ver Todas</a>'
             for c in cursos:
-                cursos_nav += f"- [Curso {c.codigo}: {c.nombre}](/api/v1/asignaciones/?curso={c.id})\n"
+                buttons_html += f'<a href="/api/v1/asignaciones/?curso={c.id}" style="background: #2563eb; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Curso {c.codigo}: {c.nombre}</a>'
+            buttons_html += '</div>'
 
-            return (
-                "### Mis Asignaciones Academicas\n\n"
-                "**Instrucciones:**\n"
-                "1. Revisa las tareas pendientes de tus cursos en la lista inferior.\n"
-                "2. Haz clic en el enlace `url_entrega` de la asignacion deseada para enviar tu solucion."
-                f"{cursos_nav}"
+            content = (
+                '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
+                '<h3 style="margin-top: 0; color: #0f172a;">Mis Asignaciones Academicas</h3>'
+                '<p style="color: #475569; margin-bottom: 10px; font-size: 14px;">'
+                '1. Revisa las tareas pendientes de tus cursos en la lista inferior.<br>'
+                '2. Haz clic en el enlace <code>url_entrega</code> de la tarea para enviar tu solucion.'
+                '</p>'
+                '<h4 style="margin: 12px 0 6px 0; color: #1e293b;">Filtrar por curso (Haz clic):</h4>'
+                f'{buttons_html}'
+                '</div>'
             )
+            return mark_safe(content) if html else "Mis Asignaciones Academicas"
 
-        return (
-            "Listado de asignaciones del curso.\n\n"
-            "Inicia sesion para visualizar tus cursos y asignaciones."
-        )
+        return mark_safe("<p>Inicia sesion para visualizar tus cursos y asignaciones.</p>") if html else "Inicia sesion"
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -253,6 +275,11 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
     """
     Gestion y envio de entregas para esta asignacion.
     """
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['estado', 'estudiante']
+    search_fields = ['estudiante__email', 'estudiante__username', 'estudiante__first_name', 'estudiante__last_name']
+    ordering_fields = ['fecha_entrega', 'calificacion', 'estado']
+    ordering = ['-fecha_entrega']
 
     def get_view_description(self, html=False):
         user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
@@ -262,16 +289,24 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
         except Exception:
             pass
 
-        info_asignacion = ""
-        if asignacion_actual:
-            info_asignacion = (
-                f"### Asignacion: {asignacion_actual.titulo}\n"
-                f"- **Curso:** {asignacion_actual.curso.nombre} ({asignacion_actual.curso.codigo})\n"
-                f"- **Tipo:** {asignacion_actual.get_tipo_display()} | **Valor Maximo:** {asignacion_actual.valor_maximo} pts\n"
-                f"- **Fecha limite:** {asignacion_actual.fecha_entrega.strftime('%d/%m/%Y %H:%M')}\n\n"
-            )
+        if not asignacion_actual:
+            return mark_safe("<p>Gestion y consulta de entregas.</p>") if html else "Gestion de entregas"
 
-        otras_asignaciones_nav = ""
+        # Banner de detalles de la asignación
+        banner_html = f'''
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h3 style="margin-top: 0; color: #0f172a;">Asignacion: {asignacion_actual.titulo}</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #475569;">
+                <div><strong>Curso:</strong> {asignacion_actual.curso.nombre} ({asignacion_actual.curso.codigo})</div>
+                <div><strong>Tipo:</strong> {asignacion_actual.get_tipo_display()}</div>
+                <div><strong>Valor Maximo:</strong> {asignacion_actual.valor_maximo} pts</div>
+                <div><strong>Fecha limite:</strong> {asignacion_actual.fecha_entrega.strftime('%d/%m/%Y %H:%M')}</div>
+            </div>
+        </div>
+        '''
+
+        # Barra de botones para cambiar de asignación
+        nav_asig_html = ""
         if user and user.is_authenticated:
             if getattr(user, 'es_profesor', False):
                 asignaciones_prof = Asignacion.objects.filter(
@@ -279,14 +314,15 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
                 ).select_related('curso').order_by('curso__nombre', 'fecha_entrega')
 
                 if asignaciones_prof.exists():
-                    otras_asignaciones_nav = "\n\n---\n### Cambiar de Asignacion (Clic para ver entregas):\n"
-                    curso_actual_nombre = None
+                    nav_asig_html = '<div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 16px;">'
+                    nav_asig_html += '<h4 style="margin-top: 0; margin-bottom: 8px; color: #1e293b; font-size: 14px;">Cambiar de Asignacion (Haz clic):</h4>'
+                    nav_asig_html += '<div style="display: flex; flex-wrap: wrap; gap: 8px;">'
                     for asig in asignaciones_prof:
-                        if asig.curso.nombre != curso_actual_nombre:
-                            curso_actual_nombre = asig.curso.nombre
-                            otras_asignaciones_nav += f"\n**Curso: {curso_actual_nombre}**\n"
-                        icono = "*(Viendo actualmente)*" if asignacion_actual and asig.id == asignacion_actual.id else ""
-                        otras_asignaciones_nav += f"- [{asig.titulo}](/api/v1/asignaciones/{asig.id}/entregas/) {icono}\n"
+                        if asig.id == asignacion_actual.id:
+                            nav_asig_html += f'<span style="background: #0f172a; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">{asig.titulo} (Actual)</span>'
+                        else:
+                            nav_asig_html += f'<a href="/api/v1/asignaciones/{asig.id}/entregas/" style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">{asig.titulo}</a>'
+                    nav_asig_html += '</div></div>'
 
             elif getattr(user, 'es_estudiante', False):
                 asignaciones_est = Asignacion.objects.filter(
@@ -295,38 +331,106 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
                 ).select_related('curso').order_by('curso__nombre', 'fecha_entrega')
 
                 if asignaciones_est.exists():
-                    otras_asignaciones_nav = "\n\n---\n### Mis Asignaciones (Clic para enviar o ver entrega):\n"
-                    curso_actual_nombre = None
+                    nav_asig_html = '<div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 16px;">'
+                    nav_asig_html += '<h4 style="margin-top: 0; margin-bottom: 8px; color: #1e293b; font-size: 14px;">Mis Otras Asignaciones:</h4>'
+                    nav_asig_html += '<div style="display: flex; flex-wrap: wrap; gap: 8px;">'
                     for asig in asignaciones_est:
-                        if asig.curso.nombre != curso_actual_nombre:
-                            curso_actual_nombre = asig.curso.nombre
-                            otras_asignaciones_nav += f"\n**Curso: {curso_actual_nombre}**\n"
-                        icono = "*(Viendo actualmente)*" if asignacion_actual and asig.id == asignacion_actual.id else ""
-                        otras_asignaciones_nav += f"- [{asig.titulo}](/api/v1/asignaciones/{asig.id}/entregas/) {icono}\n"
+                        if asig.id == asignacion_actual.id:
+                            nav_asig_html += f'<span style="background: #0f172a; color: #ffffff; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">{asig.titulo} (Actual)</span>'
+                        else:
+                            nav_asig_html += f'<a href="/api/v1/asignaciones/{asig.id}/entregas/" style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">{asig.titulo}</a>'
+                    nav_asig_html += '</div></div>'
 
-        if user and user.is_authenticated and getattr(user, 'es_estudiante', False):
-            return (
-                f"{info_asignacion}"
-                "### Envio de Solucion\n\n"
-                "**Instrucciones:**\n"
-                "1. En el formulario inferior puedes redactar tu entrega (en formato JSON: `{\"contenido\": \"Tu texto...\"}`).\n"
-                "2. Recuerda que solo se permite una entrega por asignacion antes de la fecha limite.\n"
-                f"{otras_asignaciones_nav}"
-            )
-        elif user and user.is_authenticated and getattr(user, 'es_profesor', False):
-            return (
-                f"{info_asignacion}"
-                "### Revision y Calificacion de Entregas\n\n"
-                "**Instrucciones:**\n"
-                "1. En la lista inferior (en `resultados`) veras las entregas de tus estudiantes.\n"
-                "2. Para calificar a un estudiante, haz clic en el enlace `url_calificar` de su entrega.\n"
-                f"{otras_asignaciones_nav}"
-            )
+        if user and user.is_authenticated and getattr(user, 'es_profesor', False):
+            # Obtener todos los estudiantes inscritos en el curso
+            inscripciones = Inscripcion.objects.filter(
+                curso=asignacion_actual.curso,
+                estado=Inscripcion.Estado.ACTIVA
+            ).select_related('estudiante').order_by('estudiante__last_name', 'estudiante__first_name')
 
-        return (
-            "Gestion y consulta de entregas de la asignacion.\n\n"
-            "Inicia sesion para ver o enviar entregas segun tu rol."
-        )
+            entregas_map = {
+                e.estudiante_id: e
+                for e in Entrega.objects.filter(asignacion=asignacion_actual).select_related('estudiante')
+            }
+
+            rows_html = ""
+            total_inscritos = inscripciones.count()
+            total_entregas = len(entregas_map)
+
+            for insc in inscripciones:
+                est = insc.estudiante
+                entrega = entregas_map.get(est.id)
+                nombre_completo = f"{est.first_name} {est.last_name}".strip() or est.username
+
+                if entrega:
+                    if entrega.estado == Entrega.Estado.CALIFICADA:
+                        estado_badge = f'<span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;">Calificada ({entrega.calificacion}/{asignacion_actual.valor_maximo})</span>'
+                        boton_accion = f'<a href="/api/v1/asignaciones/{asignacion_actual.id}/entregas/{entrega.id}/calificar/" style="background: #2563eb; color: #ffffff; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">Modificar Nota</a>'
+                    else:
+                        estado_badge = '<span style="background: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;">Entregada (Sin Calificar)</span>'
+                        boton_accion = f'<a href="/api/v1/asignaciones/{asignacion_actual.id}/entregas/{entrega.id}/calificar/" style="background: #16a34a; color: #ffffff; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">Calificar</a>'
+                else:
+                    estado_badge = '<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;">No ha entregado</span>'
+                    boton_accion = '<span style="color: #94a3b8; font-size: 12px;">Sin entrega</span>'
+
+                rows_html += f'''
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 10px 14px; font-size: 13px; color: #0f172a; font-weight: 500;">
+                        {nombre_completo}
+                        <div style="color: #64748b; font-size: 11px; font-weight: normal;">{est.email}</div>
+                    </td>
+                    <td style="padding: 10px 14px; font-size: 13px;">{estado_badge}</td>
+                    <td style="padding: 10px 14px; font-size: 13px;">{boton_accion}</td>
+                </tr>
+                '''
+
+            tabla_estudiantes = f'''
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; margin-top: 16px;">
+                <div style="background: #f8fafc; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0; color: #0f172a; font-size: 14px; font-weight: 600;">Estado de Entregas por Estudiante ({total_entregas}/{total_inscritos} entregaron)</h4>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+                                <th style="padding: 10px 14px; font-size: 12px; color: #475569; font-weight: 600;">Estudiante</th>
+                                <th style="padding: 10px 14px; font-size: 12px; color: #475569; font-weight: 600;">Estado</th>
+                                <th style="padding: 10px 14px; font-size: 12px; color: #475569; font-weight: 600;">Accion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows_html if rows_html else '<tr><td colspan="3" style="padding: 14px; text-align: center; color: #64748b;">No hay estudiantes inscritos en este curso.</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            '''
+
+            full_html = f'''
+            {banner_html}
+            {nav_asig_html}
+            {tabla_estudiantes}
+            '''
+            return mark_safe(full_html) if html else "Revision y Calificacion de Entregas"
+
+        elif user and user.is_authenticated and getattr(user, 'es_estudiante', False):
+            mi_entrega = Entrega.objects.filter(asignacion=asignacion_actual, estudiante=user).first()
+            if mi_entrega:
+                if mi_entrega.estado == Entrega.Estado.CALIFICADA:
+                    info_mi_entrega = f'<div style="background: #dcfce7; border: 1px solid #86efac; padding: 12px; border-radius: 6px; color: #166534; margin-top: 10px;"><strong>Tu Entrega esta Calificada:</strong> {mi_entrega.calificacion}/{asignacion_actual.valor_maximo} pts.<br><strong>Retroalimentacion:</strong> {mi_entrega.retroalimentacion or "Sin comentarios adicionales."}</div>'
+                else:
+                    info_mi_entrega = '<div style="background: #fef08a; border: 1px solid #fde047; padding: 12px; border-radius: 6px; color: #854d0e; margin-top: 10px;"><strong>Tu Entrega fue Enviada:</strong> Pendiente de calificacion por el profesor.</div>'
+            else:
+                info_mi_entrega = '<div style="background: #fee2e2; border: 1px solid #fca5a5; padding: 12px; border-radius: 6px; color: #991b1b; margin-top: 10px;"><strong>Aun no has entregado esta asignacion.</strong> Completa el formulario inferior para enviar tu solucion.</div>'
+
+            full_html = f'''
+            {banner_html}
+            {nav_asig_html}
+            {info_mi_entrega}
+            '''
+            return mark_safe(full_html) if html else "Envio de Solucion"
+
+        return mark_safe(f"{banner_html}<p>Inicia sesion para ver o enviar entregas segun tu rol.</p>") if html else "Gestion de entregas"
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -407,13 +511,20 @@ class CalificarEntregaView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated, EsProfesor]
 
     def get_view_description(self, html=False):
-        return (
-            "Calificación y retroalimentación de la entrega del estudiante.\n\n"
-            "INSTRUCCIONES:\n"
-            "1. En el formulario inferior (pestaña 'HTML form') encontrarás las casillas 'Calificacion' y 'Retroalimentacion'.\n"
-            "2. Solo escribe la nota numérica (ejemplo: 20 o 18.5) y tus comentarios.\n"
-            "3. Haz clic en el botón PATCH para guardar la calificación."
+        asignacion_id = self.kwargs.get('asignacion_id')
+        back_url = f"/api/v1/asignaciones/{asignacion_id}/entregas/" if asignacion_id else "/api/v1/asignaciones/"
+
+        content = (
+            '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px;">'
+            '<h3 style="margin-top: 0; color: #0f172a;">Calificacion y Retroalimentacion de la Entrega</h3>'
+            '<p style="color: #475569; font-size: 14px; margin-bottom: 12px;">'
+            '1. En el formulario inferior ingresa la nota numerica y tus comentarios.<br>'
+            '2. Haz clic en el boton <strong>PATCH</strong> para guardar la calificacion.'
+            '</p>'
+            f'<a href="{back_url}" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">&larr; Volver a la Lista de Entregas</a>'
+            '</div>'
         )
+        return mark_safe(content) if html else "Calificacion y retroalimentacion de la entrega"
 
     def _obtener_entrega(self):
         from rest_framework.exceptions import NotFound, PermissionDenied
