@@ -2,22 +2,6 @@
 apps/usuarios/permissions.py
 
 Permisos personalizados del sistema de usuarios.
-
-Decision de arquitectura:
-    DRF separa autenticacion (quien eres) de autorizacion (que puedes hacer).
-    Los permisos aqui implementados actuan a dos niveles:
-
-    1. Nivel de vista (has_permission): se evalua para toda la peticion
-       antes de procesar nada. Ej: "solo profesores pueden acceder a este endpoint".
-
-    2. Nivel de objeto (has_object_permission): se evalua para un objeto
-       especifico. Ej: "solo el propietario del curso puede eliminarlo".
-
-    Los permisos se combinan con el operador AND en las vistas usando listas:
-        permission_classes = [IsAuthenticated, EsProfesor]
-
-    Para combinar con OR se usa el operador | de DRF:
-        permission_classes = [EsProfesor | EsAdministrador]
 """
 
 from rest_framework.permissions import BasePermission, SAFE_METHODS

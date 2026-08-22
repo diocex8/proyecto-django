@@ -2,19 +2,6 @@
 apps/usuarios/models.py
 
 Modelo de usuario personalizado del proyecto.
-
-NOTA: Este es el modelo base que se expande en el Paso 2 con campos
-adicionales de roles (Profesor, Estudiante) y permisos.
-
-Decision de arquitectura:
-    Se extiende AbstractUser en lugar de AbstractBaseUser para conservar
-    el sistema de autenticacion y permisos integrado de Django (groups,
-    user_permissions, is_staff, is_superuser) sin tener que reimplementarlo.
-    Esto ahorra tiempo y reduce la superficie de errores de seguridad.
-
-    CRITICO: AUTH_USER_MODEL debe definirse ANTES de crear la primera
-    migracion. Cambiarlo despues requiere eliminar todas las migraciones
-    y la base de datos, lo cual es destructivo en produccion.
 """
 
 from django.contrib.auth.models import AbstractUser

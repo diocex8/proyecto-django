@@ -2,14 +2,6 @@
 apps/usuarios/services.py
 
 Capa de servicio del dominio de usuarios.
-
-Decision de arquitectura (Thin Views / Service Layer):
-    La logica de negocio que involucra multiples modelos o pasos se centraliza
-    aqui para que:
-    1. Las vistas permanezcan delgadas (solo coordinan, no calculan).
-    2. Los servicios sean testeables de forma independiente sin HTTP.
-    3. La logica pueda reutilizarse desde comandos de gestion, tareas
-       programadas o el panel de administracion.
 """
 
 import logging

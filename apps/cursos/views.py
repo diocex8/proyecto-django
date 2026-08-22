@@ -1,17 +1,8 @@
 """
 apps/cursos/views.py
 
-Vistas del dominio de cursos.
+Vistas del dominio de los cursos
 
-Decision: Se usa ModelViewSet para el CRUD estandar de cursos porque
-el patron de recursos REST (list, create, retrieve, update, destroy)
-encaja perfectamente con los requisitos. Las acciones adicionales
-(publicar, archivar) se implementan como @action decoradas.
-
-Optimizacion de consultas:
-    El metodo get_queryset() aplica select_related y prefetch_related
-    con annotate() para evitar N+1 en todos los accesos al modelo.
-    Esto es OBLIGATORIO en todos los ViewSets que devuelvan listas.
 """
 
 import logging
@@ -68,10 +59,6 @@ class CursoViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """
         Permisos dinamicos segun la accion.
-
-        Decision: En lugar de una lista fija de permisos para todo el ViewSet,
-        se asignan permisos especificos por accion para dar el acceso minimo
-        necesario (principio de minimo privilegio).
         """
         if self.action in ('list', 'retrieve'):
             permisos = [IsAuthenticated]

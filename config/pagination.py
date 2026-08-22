@@ -2,11 +2,6 @@
 config/pagination.py
 
 Clases de paginacion personalizadas del proyecto.
-
-Decision de arquitectura:
-    Se define la paginacion en un modulo centralizado para garantizar
-    consistencia en todos los endpoints y facilitar cambios futuros.
-    La paginacion se aplica globalmente via REST_FRAMEWORK['DEFAULT_PAGINATION_CLASS'].
 """
 
 from rest_framework.pagination import PageNumberPagination, LimitOffsetPagination

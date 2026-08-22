@@ -2,12 +2,6 @@
 apps/inscripciones/services.py
 
 Capa de servicio del dominio de inscripciones.
-
-Decision de arquitectura:
-    La logica de inscripcion tiene reglas de negocio no triviales:
-    verificar cupos, calcular nota final promedio, etc. Centralizar esto
-    en servicios permite que las vistas sean delgadas y que esta logica
-    sea testeable sin necesidad de peticiones HTTP.
 """
 
 import logging

@@ -5,13 +5,6 @@ Configuracion avanzada de Gunicorn para produccion.
 
 Uso:
     gunicorn -c gunicorn.conf.py config.wsgi:application
-
-Decision de arquitectura:
-    Separar la configuracion de Gunicorn en un archivo dedicado en lugar de
-    pasar todos los parametros como flags en el Procfile. Esto permite:
-    - Control mas fino sobre el comportamiento del servidor.
-    - Documentacion clara de cada parametro.
-    - Facilidad de modificacion sin tocar el Procfile.
 """
 
 import multiprocessing

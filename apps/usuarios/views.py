@@ -2,11 +2,6 @@
 apps/usuarios/views.py
 
 Vistas del dominio de usuarios.
-
-Decision: Se usan GenericAPIView con mixins especificos (en lugar de ViewSets)
-porque los endpoints de autenticacion no siguen el patron REST estandar de
-recursos (no son CRUD puro), tienen logica especial (registro, cambio de
-contrasena) y se benefician de la claridad de vistas individuales.
 """
 
 import logging

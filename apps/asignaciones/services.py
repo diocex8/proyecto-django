@@ -2,11 +2,6 @@
 apps/asignaciones/services.py
 
 Capa de servicio del dominio de asignaciones y entregas.
-
-Decision de arquitectura:
-    Las operaciones que involucran multiples modelos (Asignacion, Entrega,
-    Inscripcion) se encapsulan aqui para mantener las vistas delgadas y
-    la logica de negocio testeable de forma aislada.
 """
 
 import logging

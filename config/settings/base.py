@@ -4,11 +4,6 @@ settings/base.py
 Configuracion base compartida entre TODOS los entornos (desarrollo, produccion).
 Contiene los valores comunes y no sensibles. Los valores sensibles se cargan
 desde el archivo .env mediante django-environ.
-
-Decision de arquitectura:
-    - Se usa django-environ para separar la configuracion del codigo fuente.
-    - Esto cumple con el principio de 12-Factor App (factor III: Config).
-    - Las credenciales NUNCA se escriben directamente en el codigo.
 """
 
 import os
@@ -124,9 +119,7 @@ TEMPLATES = [
 # Base de datos PostgreSQL
 # ===========================================================================
 
-# Decision: Se usa PostgreSQL en todos los entornos (incluyendo desarrollo)
-# para garantizar paridad entre entornos y evitar errores de comportamiento
-# que difieren entre SQLite y PostgreSQL (ej. tipos de campo, constraints).
+# Configuracion de PostgreSQL para la base de datos de la aplicacion.
 
 DATABASES = {
     'default': {
@@ -154,16 +147,14 @@ DATABASES = {
 # Modelo de usuario personalizado
 # ===========================================================================
 
-# Decision critica: AUTH_USER_MODEL DEBE definirse antes de la primera migracion.
-# Cambiarlo despues es extremadamente costoso. Siempre usar un modelo custom.
+# Modelo de usuario personalizado de la aplicacion
 AUTH_USER_MODEL = 'usuarios.Usuario'
 
 # ===========================================================================
 # Validadores de contrasena
 # ===========================================================================
 
-# Decision de seguridad: Politica de contrasenas estricta para reducir la
-# superficie de ataque ante ataques de diccionario y fuerza bruta.
+# Validadores y politica de contrasenas
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -272,6 +263,5 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Tipo de clave primaria por defecto
 # ===========================================================================
 
-# Decision: BigAutoField como default para escalar sin problemas a millones
-# de registros. El AutoField (int de 32 bits) se agota en ~2.1 mil millones.
+# Tipo de clave primaria auto-incremental por defecto
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

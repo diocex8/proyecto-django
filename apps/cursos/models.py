@@ -2,12 +2,6 @@
 apps/cursos/models.py
 
 Modelos del dominio de cursos academicos.
-
-Decision de arquitectura:
-    El modelo Curso es el agregado central del sistema. Todas las relaciones
-    clave (inscripciones, asignaciones) convergen en el. Por esta razon se
-    mantiene en su propia aplicacion para encapsular el concepto de "curso"
-    sin crear dependencias circulares.
 """
 
 import logging

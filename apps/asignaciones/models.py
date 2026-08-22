@@ -2,16 +2,6 @@
 apps/asignaciones/models.py
 
 Modelos de Asignacion y Entrega del dominio academico.
-
-Decision de arquitectura:
-    Asignacion y Entrega se mantienen en la misma aplicacion porque son
-    conceptos acoplados: una Entrega no existe sin una Asignacion.
-    Separarlos en dos apps introduciria complejidad innecesaria y
-    dependencias circulares.
-
-    La calificacion se almacena en la Entrega (no en la Inscripcion)
-    porque una inscripcion puede tener multiples entregas (una por
-    asignacion), y cada entrega tiene su propia nota.
 """
 
 import logging

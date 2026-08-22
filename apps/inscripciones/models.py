@@ -1,18 +1,7 @@
 """
 apps/inscripciones/models.py
 
-Modelo de inscripcion: tabla intermedia personalizada entre Curso y Estudiante.
-
-Decision de arquitectura:
-    Django permite una ManyToManyField simple con `through=` para tablas
-    intermedias. Se usa un modelo explicito (en lugar del ManyToMany implicito)
-    porque necesitamos campos adicionales: estado, fecha_inscripcion y
-    nota_final. Un ManyToMany implicito no permite agregar estos campos.
-
-    Patron: la tabla Inscripcion es el registro "contable" de que un
-    estudiante pertenece a un curso. Modificarla (ej. dar de baja) no
-    elimina el registro sino que cambia su estado (soft-delete logico
-    por estado) para preservar la auditoria.
+Modelo de inscripcion: tabla intermedia entre Curso y Estudiante.
 """
 
 import logging

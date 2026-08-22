@@ -2,11 +2,6 @@
 apps/inscripciones/views.py
 
 Vistas del dominio de inscripciones.
-
-Decision: Se usa GenericAPIView con mixins en lugar de ModelViewSet porque
-las inscripciones no tienen un CRUD completo:
-- No hay PUT/PATCH (una inscripcion no se "edita", se retira).
-- El "DELETE" es logico (cambia estado a RETIRADA, no elimina el registro).
 """
 
 import logging

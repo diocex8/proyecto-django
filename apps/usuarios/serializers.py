@@ -249,14 +249,6 @@ class ActualizarPerfilSerializer(serializers.ModelSerializer):
 class CambiarPasswordSerializer(serializers.Serializer):
     """
     Serializador dedicado para el cambio de contrasena.
-
-    Decision: Se separa en su propio serializador (no en ModelSerializer)
-    porque el proceso de cambio de contrasena requiere:
-    1. Verificar la contrasena actual.
-    2. Validar la nueva contrasena con las politicas de seguridad.
-    3. Hashear y guardar.
-
-    Este flujo no encaja limpiamente en un ModelSerializer.
     """
     password_actual = serializers.CharField(
         write_only=True,
