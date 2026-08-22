@@ -1,0 +1,44 @@
+{% extends "rest_framework/base.html" %}
+{% load i18n rest_framework %}
+
+{% block branding %}
+  <a class='navbar-brand' href='/' style="font-weight: bold; color: #ffffff;">
+      Sistema Academico
+  </a>
+{% endblock %}
+
+{% block userlinks %}
+  <li style="display: inline-block; margin-right: 12px; padding-top: 10px;">
+    <a href="/" style="background: #2563eb; color: #ffffff; padding: 6px 14px; border-radius: 5px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">
+      Menu Principal
+    </a>
+    {% if user.is_authenticated and user.is_staff or user.is_superuser or user.rol == 'administrador' %}
+    <a href="/admin/" style="background: #dc2626; color: #ffffff; padding: 6px 14px; border-radius: 5px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block; margin-left: 6px;">
+      Panel Admin
+    </a>
+    {% endif %}
+  </li>
+  {{ block.super }}
+{% endblock %}
+
+{% block breadcrumbs %}
+  <ul class="breadcrumb" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <li><a href="/" style="font-weight: bold; color: #2563eb;">Menu Principal</a></li>
+      {% for breadcrumb_name, breadcrumb_url in breadcrumblist %}
+        {% if forloop.last %}
+          <li class="active"><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
+        {% else %}
+          <li><a href="{{ breadcrumb_url }}">{{ breadcrumb_name }}</a></li>
+        {% endif %}
+      {% empty %}
+        <li class="active">Inicio</li>
+      {% endfor %}
+    </div>
+    <div>
+      <a href="/" style="background: #0f172a; color: #ffffff; padding: 5px 14px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">
+        Volver al Menu Principal
+      </a>
+    </div>
+  </ul>
+{% endblock %}
