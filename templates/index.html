@@ -187,7 +187,7 @@
     <div class="auth-bar">
         <div>
             {% if request.user.is_authenticated %}
-                Hola, <strong>{{ request.user.email }}</strong> ({{ request.user.rol }})
+                Hola, <strong>{{ request.user.username }}</strong> ({{ request.user.rol }})
             {% else %}
                 No has iniciado sesión
             {% endif %}
