@@ -105,7 +105,7 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'estudiante_id': 'Como profesor/administrador, debes seleccionar el estudiante a inscribir.'
                 })
-            if getattr(user, 'es_profesor', False) and curso.profesor != user:
+            if getattr(user, 'es_profesor', False) and not getattr(user, 'es_administrador', False) and curso.profesor != user:
                 raise serializers.ValidationError({
                     'curso_id': 'Solo puedes inscribir estudiantes en tus propios cursos.'
                 })

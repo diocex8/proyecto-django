@@ -25,16 +25,15 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 class EsProfesor(BasePermission):
     """
-    Permite acceso solo a usuarios con rol 'profesor'.
-    El mensaje se muestra en la respuesta de error estandarizada.
+    Permite acceso a usuarios con rol 'profesor' o 'administrador'.
     """
-    message = 'Solo los profesores pueden realizar esta accion.'
+    message = 'Solo los profesores o administradores pueden realizar esta accion.'
 
     def has_permission(self, request, view):
         return (
             request.user
             and request.user.is_authenticated
-            and request.user.es_profesor
+            and (request.user.es_profesor or request.user.es_administrador)
         )
 
 
@@ -54,32 +53,28 @@ class EsProfesorOSoloLectura(BasePermission):
     """
     Permite:
     - Lectura (GET, HEAD, OPTIONS) a cualquier usuario autenticado.
-    - Escritura (POST, PUT, PATCH, DELETE) solo a profesores.
-
-    Util para endpoints donde los estudiantes pueden ver pero no modificar.
+    - Escritura (POST, PUT, PATCH, DELETE) a profesores o administradores.
     """
-    message = 'Solo los profesores pueden modificar este recurso.'
+    message = 'Solo los profesores o administradores pueden modificar este recurso.'
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
         if request.method in SAFE_METHODS:
             return True
-        return request.user.es_profesor
+        return request.user.es_profesor or request.user.es_administrador
 
 
 class EsPropietarioDelCurso(BasePermission):
     """
-    Permiso a nivel de objeto: solo el profesor que creo el curso
+    Permiso a nivel de objeto: el profesor propietario o un administrador
     puede modificarlo o eliminarlo.
-
-    Se combina con EsProfesor en las vistas:
-        permission_classes = [IsAuthenticated, EsProfesor, EsPropietarioDelCurso]
     """
-    message = 'Solo el profesor propietario del curso puede realizar esta accion.'
+    message = 'Solo el profesor propietario del curso o un administrador puede realizar esta accion.'
 
     def has_object_permission(self, request, view, obj):
-        # Acceso de lectura permitido al propietario y a los administradores
+        if request.user.es_administrador:
+            return True
         if request.method in SAFE_METHODS:
             return True
         return obj.profesor == request.user

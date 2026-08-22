@@ -58,9 +58,12 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
     def get_view_description(self, html=False):
         user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
 
-        if user and user.is_authenticated and getattr(user, 'es_profesor', False):
+        if user and user.is_authenticated and (getattr(user, 'es_profesor', False) or getattr(user, 'es_administrador', False)):
             from apps.cursos.models import Curso
-            cursos = Curso.objects.filter(profesor=user).order_by('nombre')
+            if user.es_profesor and not user.es_administrador:
+                cursos = Curso.objects.filter(profesor=user).order_by('nombre')
+            else:
+                cursos = Curso.objects.all().order_by('nombre')
 
             buttons_html = '<div style="margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px;">'
             buttons_html += '<a href="/api/v1/asignaciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Ver Todas</a>'
@@ -146,11 +149,11 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
         except (ValueError, TypeError):
             raise ParseError('El parametro "curso" debe ser un numero entero valido.')
 
-        # Para crear: solo el profesor propietario puede agregar asignaciones
+        # Para crear: el profesor propietario o un administrador pueden agregar asignaciones
         if self.request.method == 'POST':
-            if not getattr(self.request.user, 'es_profesor', False) or curso.profesor != self.request.user:
+            if not (getattr(self.request.user, 'es_administrador', False) or (getattr(self.request.user, 'es_profesor', False) and curso.profesor == self.request.user)):
                 raise PermissionDenied(
-                    'Solo el profesor propietario del curso puede agregar asignaciones.'
+                    'Solo el profesor propietario del curso o un administrador puede agregar asignaciones.'
                 )
 
         # Para listar: el estudiante debe estar inscrito
@@ -252,10 +255,10 @@ class AsignacionDetalleActualizarView(generics.RetrieveUpdateDestroyAPIView):
         super().check_object_permissions(request, obj)
         # Verificar que el profesor sea el propietario del curso de la asignacion
         if request.method not in ('GET', 'HEAD', 'OPTIONS'):
-            if request.user.es_profesor and obj.curso.profesor != request.user:
+            if not request.user.es_administrador and request.user.es_profesor and obj.curso.profesor != request.user:
                 from rest_framework.exceptions import PermissionDenied
                 raise PermissionDenied(
-                    'Solo el profesor propietario del curso puede modificar esta asignacion.'
+                    'Solo el profesor propietario del curso o un administrador puede modificar esta asignacion.'
                 )
 
     def perform_destroy(self, instance):
@@ -309,10 +312,13 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
         # Barra de botones para cambiar de asignación
         nav_asig_html = ""
         if user and user.is_authenticated:
-            if getattr(user, 'es_profesor', False):
-                asignaciones_prof = Asignacion.objects.filter(
-                    curso__profesor=user
-                ).select_related('curso').order_by('curso__nombre', 'fecha_entrega')
+            if getattr(user, 'es_profesor', False) or getattr(user, 'es_administrador', False):
+                if getattr(user, 'es_profesor', False) and not getattr(user, 'es_administrador', False):
+                    asignaciones_prof = Asignacion.objects.filter(
+                        curso__profesor=user
+                    ).select_related('curso').order_by('curso__nombre', 'fecha_entrega')
+                else:
+                    asignaciones_prof = Asignacion.objects.select_related('curso').order_by('curso__nombre', 'fecha_entrega')
 
                 if asignaciones_prof.exists():
                     nav_asig_html = '<div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 16px;">'
@@ -342,7 +348,7 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
                             nav_asig_html += f'<a href="/api/v1/asignaciones/{asig.id}/entregas/" style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">{asig.titulo}</a>'
                     nav_asig_html += '</div></div>'
 
-        if user and user.is_authenticated and getattr(user, 'es_profesor', False):
+        if user and user.is_authenticated and (getattr(user, 'es_profesor', False) or getattr(user, 'es_administrador', False)):
             # Obtener todos los estudiantes inscritos en el curso
             inscripciones = Inscripcion.objects.filter(
                 curso=asignacion_actual.curso,
@@ -457,8 +463,8 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
         asignacion = self._obtener_asignacion()
         usuario = self.request.user
 
-        # El profesor del curso ve todas las entregas
-        if usuario.es_profesor and asignacion.curso.profesor == usuario:
+        # El profesor del curso o un administrador ve todas las entregas
+        if usuario.es_administrador or (usuario.es_profesor and asignacion.curso.profesor == usuario):
             return Entrega.objects.filter(asignacion=asignacion).select_related(
                 'estudiante', 'asignacion'
             )
@@ -540,9 +546,9 @@ class CalificarEntregaView(generics.GenericAPIView):
         except Entrega.DoesNotExist:
             raise NotFound('La entrega especificada no existe.')
 
-        if entrega.asignacion.curso.profesor != self.request.user:
+        if not (self.request.user.es_administrador or entrega.asignacion.curso.profesor == self.request.user):
             raise PermissionDenied(
-                'Solo el profesor del curso puede calificar esta entrega.'
+                'Solo el profesor del curso o un administrador puede calificar esta entrega.'
             )
 
         return entrega

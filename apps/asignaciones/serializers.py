@@ -93,7 +93,7 @@ class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
-        if request and getattr(request.user, 'es_profesor', False):
+        if request and getattr(request.user, 'es_profesor', False) and not getattr(request.user, 'es_administrador', False):
             self.fields['curso'].queryset = Curso.objects.filter(profesor=request.user)
 
     def validate_fecha_entrega(self, value):
@@ -128,7 +128,7 @@ class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
                 'curso': 'Debes seleccionar el curso al que pertenece la asignación.'
             })
 
-        if curso and request and getattr(request.user, 'es_profesor', False):
+        if curso and request and getattr(request.user, 'es_profesor', False) and not getattr(request.user, 'es_administrador', False):
             if curso.profesor != request.user:
                 raise serializers.ValidationError({
                     'curso': 'Solo puedes crear asignaciones en tus propios cursos.'

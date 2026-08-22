@@ -119,11 +119,12 @@ class CursoViewSet(viewsets.ModelViewSet):
         if usuario.es_estudiante:
             # El estudiante ve solo cursos publicados
             return queryset.filter(estado=Curso.Estado.PUBLICADO)
+        elif usuario.es_administrador:
+            # El administrador ve todos los cursos en cualquier estado
+            return queryset
         elif usuario.es_profesor:
             # El profesor ve sus propios cursos (en cualquier estado)
             return queryset.filter(profesor=usuario)
-        elif usuario.es_administrador:
-            return queryset
 
         return queryset.none()
 
@@ -206,10 +207,10 @@ class CursoViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied(
                     'Debes estar inscrito activamente en el curso para ver sus asignaciones.'
                 )
-        elif request.user.es_profesor and curso.profesor != request.user:
+        elif request.user.es_profesor and not request.user.es_administrador and curso.profesor != request.user:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied(
-                'Solo el profesor propietario puede ver las asignaciones de este curso.'
+                'Solo el profesor propietario o un administrador puede ver las asignaciones de este curso.'
             )
 
         from apps.asignaciones.models import Asignacion
@@ -228,16 +229,16 @@ class CursoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='inscripciones')
     def listar_inscripciones(self, request, pk=None):
         """
-        Lista las inscripciones activas del curso.
-        Solo accesible por el profesor propietario.
+        Lista las inscripciones del curso.
+        Accesible por el profesor propietario o un administrador.
         GET /api/v1/cursos/{id}/inscripciones/
         """
         curso = self.get_object()
 
-        if not (request.user.es_profesor and curso.profesor == request.user):
+        if not (request.user.es_administrador or (request.user.es_profesor and curso.profesor == request.user)):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied(
-                'Solo el profesor propietario puede ver las inscripciones.'
+                'Solo el profesor propietario o un administrador puede ver las inscripciones.'
             )
 
         inscripciones = Inscripcion.objects.filter(
