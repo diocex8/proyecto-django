@@ -133,9 +133,9 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(
         write_only=True,
-        min_length=10,
+        min_length=5,
         style={'input_type': 'password'},
-        help_text='Minimo 10 caracteres. No puede ser una contrasena comun.',
+        help_text='Minimo 5 caracteres.',
     )
     password_confirmacion = serializers.CharField(
         write_only=True,
@@ -246,7 +246,7 @@ class CambiarPasswordSerializer(serializers.Serializer):
     )
     password_nuevo = serializers.CharField(
         write_only=True,
-        min_length=10,
+        min_length=5,
         style={'input_type': 'password'},
     )
     password_nuevo_confirmacion = serializers.CharField(
