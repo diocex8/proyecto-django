@@ -73,11 +73,12 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
 
             content = (
                 '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
-                '<h3 style="margin-top: 0; color: #0f172a;">Gestion y Busqueda de Inscripciones de Estudiantes</h3>'
+                '<h3 style="margin-top: 0; color: #0f172a;">Gestion Academica y Busqueda de Inscripciones</h3>'
                 '<p style="color: #475569; margin-bottom: 10px; font-size: 14px;">'
-                '1. <strong>Buscar estudiante:</strong> Puedes usar el parametro <code>?search=nombre_o_correo</code> para buscar estudiantes especificos.<br>'
-                '2. <strong>Modificar / Desinscribir:</strong> En los resultados inferiores, haz clic en el enlace <code>url_detalle</code> de cualquier inscripcion para editar su estado, calificar su nota final o desinscribirlo.<br>'
-                '3. <strong>Inscripcion directa:</strong> En el formulario inferior puedes inscribir a cualquier estudiante en tus cursos.'
+                '1. <strong>Sistema de Promedios Reales:</strong> Cada inscripcion calcula en tiempo real el porcentaje de avance, promedio de evaluaciones calificadas (base 20), nota proyectada segun las asignaciones planificadas y estado de rendimiento.<br>'
+                '2. <strong>Buscar estudiante:</strong> Puedes usar el buscador o el parametro <code>?search=nombre_o_correo</code>.<br>'
+                '3. <strong>Modificar / Desinscribir:</strong> Haz clic en el enlace <code>url_detalle</code> de cualquier inscripcion para ver su desglose academico, modificar estado, asignar nota final o retirarlo.<br>'
+                '4. <strong>Inscripcion directa:</strong> Completa el formulario inferior para inscribir a un estudiante en tus cursos.'
                 '</p>'
                 '<h4 style="margin: 12px 0 6px 0; color: #1e293b;">Filtrar inscripciones por curso (Haz clic para filtrar):</h4>'
                 f'{buttons_html}'
@@ -88,11 +89,11 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
         elif user and user.is_authenticated and getattr(user, 'es_estudiante', False):
             content = (
                 '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
-                '<h3 style="margin-top: 0; color: #0f172a;">Mis Cursos e Inscripciones</h3>'
+                '<h3 style="margin-top: 0; color: #0f172a;">Mis Cursos, Promedios y Progreso Academico</h3>'
                 '<p style="color: #475569; margin-bottom: 10px; font-size: 14px;">'
-                '1. Revisa los cursos en los que estas inscrito en la lista inferior.<br>'
+                '1. Revisa tu lista de cursos inscritos abajo junto con tu <strong>rendimiento academico</strong>, avance de asignaciones y promedios calculados.<br>'
                 '2. Para inscribirte en un nuevo curso disponible, completa el formulario inferior seleccionando el <strong>Curso</strong>.<br>'
-                '3. Para retirarte de un curso, accede a su <code>url_detalle</code> y confirma tu retiro.'
+                '3. Para ver el detalle y desglose de un curso, accede a su <code>url_detalle</code>.'
                 '</p>'
                 '</div>'
             )
@@ -138,7 +139,7 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
 
 class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET    /api/v1/inscripciones/{id}/  -> Ver detalle de una inscripcion.
+    GET    /api/v1/inscripciones/{id}/  -> Ver detalle de una inscripcion y promedios.
     PUT/PATCH /api/v1/inscripciones/{id}/ -> Modificar estado y nota final (Profesores/Admins).
     DELETE /api/v1/inscripciones/{id}/  -> Desinscribir/Retirar al estudiante (soft-delete).
     """
@@ -165,16 +166,28 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
         info_header = ""
         if inscripcion:
             est = inscripcion.estudiante
+            stats = inscripcion.calcular_estadisticas_academicas()
+            rendimiento = stats['estado_rendimiento']
+            badge_color = "#16a34a" if "Aprobando" in rendimiento and "riesgo" not in rendimiento else ("#d97706" if "riesgo" in rendimiento else "#dc2626")
+
             info_header = (
-                f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 16px; border-radius: 8px; margin-bottom: 16px;">'
-                f'<h3 style="margin-top: 0; color: #0f172a;">Inscripcion de: {est.get_full_name() or est.username} ({est.email})</h3>'
-                f'<div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #475569; margin-bottom: 10px;">'
-                f'<div><strong>Curso:</strong> {inscripcion.curso.nombre} ({inscripcion.curso.codigo})</div>'
-                f'<div><strong>Estado Actual:</strong> {inscripcion.get_estado_display()}</div>'
-                f'<div><strong>Nota Final:</strong> {inscripcion.nota_final or "Pendiente"}</div>'
-                f'<div><strong>Fecha de Inscripcion:</strong> {inscripcion.fecha_inscripcion.strftime("%d/%m/%Y")}</div>'
+                f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
+                f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+                f'<h3 style="margin: 0; color: #0f172a;">Estudiante: {est.get_full_name() or est.username} ({est.email})</h3>'
+                f'<span style="background: {badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">{rendimiento}</span>'
                 f'</div>'
-                f'<a href="/api/v1/inscripciones/" style="background: #0f172a; color: #ffffff; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">&larr; Volver a la Lista de Inscripciones</a>'
+                f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; color: #334155; margin-bottom: 14px; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;">'
+                f'<div><strong>Curso:</strong> {inscripcion.curso.nombre} ({inscripcion.curso.codigo})</div>'
+                f'<div><strong>Asignaciones Planificadas:</strong> {stats["total_asignaciones_planificadas"]}</div>'
+                f'<div><strong>Asignaciones Publicadas:</strong> {stats["asignaciones_publicadas"]}</div>'
+                f'<div><strong>Entregas Enviadas:</strong> {stats["entregas_enviadas"]} / {stats["total_asignaciones_planificadas"]} ({stats["porcentaje_avance"]})</div>'
+                f'<div><strong>Evaluaciones Calificadas:</strong> {stats["entregas_calificadas"]}</div>'
+                f'<div><strong>Promedio Evaluaciones (0-20):</strong> <span style="font-weight: bold; color: #2563eb;">{stats["promedio_acumulado_base20"] or "Sin calificar"}</span></div>'
+                f'<div><strong>Nota Proyectada Curso (0-20):</strong> <span style="font-weight: bold; color: #0f172a;">{stats["nota_proyectada_curso"]}</span></div>'
+                f'<div><strong>Nota Final Asignada:</strong> <span style="font-weight: bold; color: #16a34a;">{inscripcion.nota_final or "Pendiente"}</span></div>'
+                f'<div><strong>Estado Inscripcion:</strong> {inscripcion.get_estado_display()}</div>'
+                f'</div>'
+                f'<a href="/api/v1/inscripciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">&larr; Volver a la Lista de Inscripciones</a>'
                 f'</div>'
             )
 

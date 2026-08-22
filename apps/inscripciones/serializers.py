@@ -8,23 +8,27 @@ from apps.inscripciones.models import Inscripcion
 
 
 class InscripcionListaSerializer(serializers.ModelSerializer):
-    """Serializador de lectura con datos anidados de curso y estudiante."""
+    """Serializador de lectura con datos anidados de curso y estudiante, incluyendo rendimiento academico."""
     curso = CursoListaSerializer(read_only=True)
     estudiante = UsuarioResumenSerializer(read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    rendimiento_academico = serializers.SerializerMethodField()
     url_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = Inscripcion
         fields = (
             'id', 'curso', 'estudiante', 'estado',
-            'estado_display', 'nota_final', 'fecha_inscripcion',
-            'url_detalle',
+            'estado_display', 'nota_final', 'rendimiento_academico',
+            'fecha_inscripcion', 'url_detalle',
         )
         read_only_fields = fields
 
     def get_url_detalle(self, obj):
         return f"/api/v1/inscripciones/{obj.id}/"
+
+    def get_rendimiento_academico(self, obj):
+        return obj.calcular_estadisticas_academicas()
 
 
 class InscripcionDetalleSerializer(serializers.ModelSerializer):
@@ -32,29 +36,22 @@ class InscripcionDetalleSerializer(serializers.ModelSerializer):
     curso = CursoListaSerializer(read_only=True)
     estudiante = UsuarioResumenSerializer(read_only=True)
     estado_display = serializers.CharField(source='get_estado_display', read_only=True)
-    promedio_entregas = serializers.SerializerMethodField()
+    rendimiento_academico = serializers.SerializerMethodField()
 
     class Meta:
         model = Inscripcion
         fields = (
             'id', 'curso', 'estudiante', 'estado',
-            'estado_display', 'nota_final', 'promedio_entregas',
+            'estado_display', 'nota_final', 'rendimiento_academico',
             'fecha_inscripcion', 'fecha_actualizacion',
         )
-        read_only_fields = ('id', 'curso', 'estudiante', 'estado_display', 'promedio_entregas', 'fecha_inscripcion', 'fecha_actualizacion')
+        read_only_fields = (
+            'id', 'curso', 'estudiante', 'estado_display',
+            'rendimiento_academico', 'fecha_inscripcion', 'fecha_actualizacion',
+        )
 
-    def get_promedio_entregas(self, obj):
-        """Calcula el promedio de las entregas calificadas del estudiante en este curso."""
-        from django.db.models import Avg
-        from apps.asignaciones.models import Entrega
-
-        promedio = Entrega.objects.filter(
-            estudiante=obj.estudiante,
-            asignacion__curso=obj.curso,
-            estado=Entrega.Estado.CALIFICADA,
-        ).aggregate(promedio=Avg('calificacion'))['promedio']
-
-        return round(float(promedio), 2) if promedio is not None else None
+    def get_rendimiento_academico(self, obj):
+        return obj.calcular_estadisticas_academicas()
 
 
 class InscripcionModificarSerializer(serializers.ModelSerializer):

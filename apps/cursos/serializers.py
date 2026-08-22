@@ -15,15 +15,10 @@ class CursoListaSerializer(serializers.ModelSerializer):
     """
     Serializador compacto para el listado de cursos.
     Incluye datos del profesor (anidado) y conteos calculados.
-
-    OPTIMIZACION: Los campos 'total_inscritos' y 'total_asignaciones'
-    se resuelven con valores anotados desde el queryset de la vista
-    (via annotate). Si no existen las anotaciones, hace consultas de conteo
-    individuales como respaldo (acepta el N+1 como fallback documentado).
     """
     profesor = UsuarioResumenSerializer(read_only=True)
     total_inscritos = serializers.SerializerMethodField()
-    total_asignaciones = serializers.SerializerMethodField()
+    asignaciones_creadas = serializers.SerializerMethodField()
     esta_activo = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -31,17 +26,17 @@ class CursoListaSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'codigo', 'nombre', 'descripcion', 'estado',
             'profesor', 'capacidad_maxima', 'total_inscritos',
-            'total_asignaciones', 'fecha_inicio', 'fecha_fin', 'esta_activo',
+            'total_asignaciones', 'asignaciones_creadas',
+            'fecha_inicio', 'fecha_fin', 'esta_activo',
         )
         read_only_fields = fields
 
     def get_total_inscritos(self, obj):
-        # Usa el valor anotado si existe (evita N+1)
         if hasattr(obj, 'total_inscritos_anotado'):
             return obj.total_inscritos_anotado
         return obj.inscripciones.filter(estado='activa').count()
 
-    def get_total_asignaciones(self, obj):
+    def get_asignaciones_creadas(self, obj):
         if hasattr(obj, 'total_asignaciones_anotado'):
             return obj.total_asignaciones_anotado
         return obj.asignaciones.count()
@@ -55,13 +50,15 @@ class CursoDetalleSerializer(serializers.ModelSerializer):
     profesor = UsuarioResumenSerializer(read_only=True)
     total_inscritos = serializers.SerializerMethodField()
     cupos_disponibles = serializers.SerializerMethodField()
+    asignaciones_creadas = serializers.SerializerMethodField()
     esta_activo = serializers.SerializerMethodField()
 
     class Meta:
         model = Curso
         fields = (
             'id', 'codigo', 'nombre', 'descripcion', 'estado',
-            'profesor', 'capacidad_maxima', 'total_inscritos',
+            'profesor', 'capacidad_maxima', 'total_asignaciones',
+            'asignaciones_creadas', 'total_inscritos',
             'cupos_disponibles', 'fecha_inicio', 'fecha_fin',
             'esta_activo', 'fecha_creacion', 'fecha_actualizacion',
         )
@@ -76,6 +73,9 @@ class CursoDetalleSerializer(serializers.ModelSerializer):
         total_inscritos = self.get_total_inscritos(obj)
         return max(0, obj.capacidad_maxima - total_inscritos)
 
+    def get_asignaciones_creadas(self, obj):
+        return obj.asignaciones.count()
+
     def get_esta_activo(self, obj):
         return obj.esta_activo
 
@@ -83,18 +83,14 @@ class CursoDetalleSerializer(serializers.ModelSerializer):
 class CursoCrearActualizarSerializer(serializers.ModelSerializer):
     """
     Serializador plano para CREAR y ACTUALIZAR un curso.
-
-    Decision: Serializador separado para escritura porque:
-    1. No incluye campos anidados complejos (mas rapido de validar).
-    2. El profesor se asigna automaticamente desde request.user, no del body.
-    3. Las validaciones de negocio (fechas, capacidad) viven aqui.
     """
 
     class Meta:
         model = Curso
         fields = (
             'codigo', 'nombre', 'descripcion',
-            'capacidad_maxima', 'fecha_inicio', 'fecha_fin',
+            'capacidad_maxima', 'total_asignaciones',
+            'fecha_inicio', 'fecha_fin',
         )
 
     def validate_codigo(self, value):

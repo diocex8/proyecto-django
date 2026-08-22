@@ -123,3 +123,54 @@ class Inscripcion(models.Model):
         self.estado = self.Estado.COMPLETADA
         self.nota_final = nota_final
         self.save(update_fields=['estado', 'nota_final', 'fecha_actualizacion'])
+
+    def calcular_estadisticas_academicas(self):
+        """
+        Calcula el progreso del estudiante, promedios de notas y estado academico actual.
+        """
+        from apps.asignaciones.models import Entrega
+
+        total_planificadas = self.curso.total_asignaciones or 1
+        asignaciones_creadas = self.curso.asignaciones.count()
+
+        entregas = Entrega.objects.filter(
+            asignacion__curso=self.curso,
+            estudiante=self.estudiante
+        ).select_related('asignacion')
+
+        total_entregadas = entregas.count()
+        entregas_calificadas = [e for e in entregas if e.estado == Entrega.Estado.CALIFICADA and e.calificacion is not None]
+        total_calificadas = len(entregas_calificadas)
+
+        porcentaje_avance = round(min(100.0, (total_entregadas / total_planificadas) * 100), 1)
+
+        if total_calificadas > 0:
+            notas_normalizadas = [
+                float(e.calificacion) / float(e.asignacion.valor_maximo) * 20.0
+                for e in entregas_calificadas
+                if e.asignacion.valor_maximo > 0
+            ]
+            promedio_acumulado = round(sum(notas_normalizadas) / len(notas_normalizadas), 2)
+            nota_proyectada = round(sum(notas_normalizadas) / total_planificadas, 2)
+
+            if promedio_acumulado >= 13.0:
+                rendimiento = 'Aprobando (Satisfactorio)'
+            elif promedio_acumulado >= 10.5:
+                rendimiento = 'Aprobando (En riesgo)'
+            else:
+                rendimiento = 'Desaprobando'
+        else:
+            promedio_acumulado = None
+            nota_proyectada = 0.0
+            rendimiento = 'Sin evaluaciones calificadas'
+
+        return {
+            'total_asignaciones_planificadas': total_planificadas,
+            'asignaciones_publicadas': asignaciones_creadas,
+            'entregas_enviadas': total_entregadas,
+            'entregas_calificadas': total_calificadas,
+            'porcentaje_avance': f'{porcentaje_avance}%',
+            'promedio_acumulado_base20': promedio_acumulado,
+            'nota_proyectada_curso': nota_proyectada,
+            'estado_rendimiento': rendimiento,
+        }

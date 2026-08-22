@@ -113,6 +113,13 @@ class Curso(models.Model):
         verbose_name='Capacidad maxima de estudiantes',
     )
 
+    total_asignaciones = models.PositiveSmallIntegerField(
+        default=4,
+        validators=[MinValueValidator(1), MaxValueValidator(50)],
+        verbose_name='Total de asignaciones planificadas',
+        help_text='Cantidad total de asignaciones planificadas para calcular el progreso y promedios del curso.',
+    )
+
     fecha_inicio = models.DateField(
         verbose_name='Fecha de inicio',
     )
