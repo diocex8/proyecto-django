@@ -60,11 +60,6 @@ class TokenPersonalizadoObtainSerializer(TokenObtainPairSerializer):
         }
         return data
 
-
-# ===========================================================================
-# Serializers de lectura
-# ===========================================================================
-
 class UsuarioResumenSerializer(serializers.ModelSerializer):
     """
     Serializador compacto para referencias a usuarios embebidos en otros recursos.
@@ -125,11 +120,6 @@ class UsuarioDetalleSerializer(serializers.ModelSerializer):
                 estado='activa'
             ).count()
         return 0
-
-
-# ===========================================================================
-# Serializadores de ESCRITURA
-# ===========================================================================
 
 class RegistroUsuarioSerializer(serializers.ModelSerializer):
     """

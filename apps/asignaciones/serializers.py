@@ -10,11 +10,6 @@ from apps.cursos.models import Curso
 from apps.usuarios.serializers import UsuarioResumenSerializer
 from .models import Asignacion, Entrega
 
-
-# ===========================================================================
-# Serializadores de ASIGNACION
-# ===========================================================================
-
 class AsignacionListaSerializer(serializers.ModelSerializer):
     """Serializador compacto para listados de asignaciones."""
     tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
@@ -139,11 +134,6 @@ class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         curso = validated_data.pop('curso', None) or self.context.get('curso')
         return Asignacion.objects.create(curso=curso, **validated_data)
-
-
-# ===========================================================================
-# Serializadores de ENTREGA
-# ===========================================================================
 
 class EntregaListaSerializer(serializers.ModelSerializer):
     """Serializador compacto para listado de entregas."""

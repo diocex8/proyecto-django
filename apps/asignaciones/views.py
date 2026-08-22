@@ -39,11 +39,6 @@ from .serializers import (
 
 logger = logging.getLogger('gestion_academica')
 
-
-# ===========================================================================
-# Vistas de ASIGNACION
-# ===========================================================================
-
 class AsignacionListaCrearView(generics.ListCreateAPIView):
     """
     Listado y gestion de asignaciones del curso.
@@ -268,11 +263,6 @@ class AsignacionDetalleActualizarView(generics.RetrieveUpdateDestroyAPIView):
                 'No se puede eliminar una asignacion que ya tiene entregas de estudiantes.'
             )
         instance.delete()
-
-
-# ===========================================================================
-# Vistas de ENTREGA
-# ===========================================================================
 
 class EntregaListaCrearView(generics.ListCreateAPIView):
     """
