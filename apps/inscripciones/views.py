@@ -65,8 +65,17 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
             for c in cursos:
                 buttons_html += f'<a href="/api/v1/inscripciones/?curso={c.id}" style="background: #2563eb; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Curso {c.codigo}: {c.nombre}</a>'
             buttons_html += '</div>'
+            
+            search_html = """
+            <div style="margin: 16px 0; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <form method="GET" action="/api/v1/inscripciones/" style="display: flex; gap: 8px;">
+                    <input type="text" name="search" placeholder="Buscar estudiante por nombre, correo o usuario..." style="flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;">
+                    <button type="submit" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600;">Buscar</button>
+                </form>
+            </div>
+            """
 
-            return mark_safe(buttons_html) if html else "Inscripciones"
+            return mark_safe(buttons_html + search_html) if html else "Inscripciones"
 
         return ""
 

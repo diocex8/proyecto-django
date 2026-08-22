@@ -3,26 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma Educativa API</title>
+    <title>Plataforma Educativa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #f8fafc;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --primary: #3b82f6;
-            --primary-hover: #2563eb;
-            --card-bg: #ffffff;
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --radius-md: 0.75rem;
-            --radius-lg: 1rem;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -31,233 +16,636 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.6;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            display: flex;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
         }
 
-        header {
-            background-color: var(--card-bg);
-            padding: 2rem;
+        /* ---- SIDEBAR ---- */
+        .sidebar {
+            width: 220px;
+            min-width: 220px;
+            background-color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 100;
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
             text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            box-shadow: var(--shadow-sm);
         }
 
-        h1 {
-            font-size: 2.5rem;
+        .sidebar-logo {
+            width: 64px;
+            height: 64px;
+            background-color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            font-size: 1.75rem;
+        }
+
+        .sidebar-title {
+            color: #f8fafc;
+            font-size: 1rem;
             font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
         }
 
-        .subtitle {
-            color: var(--text-muted);
-            font-size: 1.125rem;
-            max-width: 600px;
-            margin: 0 auto;
+        .sidebar-subtitle {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            margin-top: 0.2rem;
         }
 
-        main {
+        .sidebar-nav {
+            padding: 1.25rem 0;
             flex: 1;
-            padding: 3rem 2rem;
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
         }
 
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-md);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-hover);
-        }
-
-        .card-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .card-title {
-            font-size: 1.5rem;
+        .nav-label {
+            color: #64748b;
+            font-size: 0.65rem;
             font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 0.75rem 1.5rem 0.4rem;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1.5rem;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.15s, color 0.15s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255,255,255,0.06);
+            color: #f8fafc;
+        }
+
+        .nav-item.active {
+            background-color: rgba(37,99,235,0.15);
+            color: #60a5fa;
+            border-left-color: #2563eb;
+        }
+
+        .nav-icon {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
             margin-bottom: 0.75rem;
-            color: var(--text-main);
         }
 
-        .card-desc {
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            flex-grow: 1;
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background-color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.875rem;
+            flex-shrink: 0;
         }
 
-        .btn-group {
+        .user-name {
+            color: #f1f5f9;
+            font-size: 0.8rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .user-role {
+            color: #94a3b8;
+            font-size: 0.7rem;
+            text-transform: capitalize;
+        }
+
+        .btn-logout {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(239,68,68,0.12);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239,68,68,0.22);
+        }
+
+        .btn-login {
+            display: block;
+            width: 100%;
+            padding: 0.6rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: center;
+            text-decoration: none;
+            transition: background 0.15s;
+        }
+
+        .btn-login:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* ---- MAIN CONTENT ---- */
+        .main-content {
+            margin-left: 220px;
+            flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            background-color: #ffffff;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .topbar-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
             gap: 0.75rem;
         }
 
-        .btn {
-            display: inline-flex;
+        .badge-role {
+            padding: 0.3rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .badge-admin { background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5; }
+        .badge-profesor { background: #eff6ff; color: #2563eb; border: 1px solid #93c5fd; }
+        .badge-estudiante { background: #f0fdf4; color: #16a34a; border: 1px solid #86efac; }
+
+        .content {
+            padding: 2rem;
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.25rem;
+        }
+
+        .section-subtitle {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        /* ---- STATS GRID ---- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+
+        .stat-card-header {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 0.5rem;
+            display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
-            font-weight: 500;
-            text-decoration: none;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            cursor: pointer;
+            font-size: 1.4rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-icon.blue  { background: #dbeafe; color: #1d4ed8; }
+        .stat-icon.green { background: #dcfce7; color: #15803d; }
+        .stat-icon.amber { background: #fef9c3; color: #92400e; }
+        .stat-icon.violet{ background: #ede9fe; color: #6d28d9; }
+        .stat-icon.red   { background: #fee2e2; color: #b91c1c; }
+        .stat-icon.slate { background: #f1f5f9; color: #334155; }
+
+        .stat-count {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .stat-divider {
             border: none;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .stat-card-footer {
+            padding: 0.75rem;
+        }
+
+        .stat-btn {
+            display: block;
             width: 100%;
+            padding: 0.5rem;
+            border-radius: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
             text-align: center;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .btn-primary {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .btn-outline {
-            background-color: transparent;
-            color: var(--primary);
-            border: 1px solid var(--primary);
-        }
-
-        .btn-outline:hover {
-            background-color: rgba(59, 130, 246, 0.05);
-        }
-        
-        .auth-bar {
-            background-color: var(--text-main);
-            color: white;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .auth-bar a, .auth-bar button {
-            color: white;
             text-decoration: none;
-            font-weight: 500;
-            margin-left: 1rem;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            background: rgba(255,255,255,0.1);
-            border: none;
             cursor: pointer;
+            border: none;
             font-family: inherit;
-            font-size: 1rem;
-            transition: background 0.2s ease;
+            transition: background 0.15s, opacity 0.15s;
         }
-        
-        .auth-bar a:hover, .auth-bar button:hover {
-            background: rgba(255,255,255,0.2);
+
+        .stat-btn.blue  { background: #2563eb; color: white; }
+        .stat-btn.blue:hover  { background: #1d4ed8; }
+        .stat-btn.green { background: #16a34a; color: white; }
+        .stat-btn.green:hover { background: #15803d; }
+        .stat-btn.amber { background: #d97706; color: white; }
+        .stat-btn.amber:hover { background: #b45309; }
+        .stat-btn.violet{ background: #7c3aed; color: white; }
+        .stat-btn.violet:hover { background: #6d28d9; }
+        .stat-btn.red   { background: #dc2626; color: white; }
+        .stat-btn.red:hover   { background: #b91c1c; }
+        .stat-btn.slate { background: #475569; color: white; }
+        .stat-btn.slate:hover { background: #334155; }
+
+        /* ---- QUICK ACCESS GRID ---- */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .quick-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .quick-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .quick-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .quick-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .quick-card-desc {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+
+        .quick-btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .quick-btn {
+            display: block;
+            padding: 0.55rem 1rem;
+            border-radius: 0.4rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            transition: opacity 0.15s, background 0.15s;
+        }
+
+        .quick-btn-solid { background-color: #2563eb; color: white; }
+        .quick-btn-solid:hover { background-color: #1d4ed8; }
+        .quick-btn-outline { background-color: transparent; color: #2563eb; border: 1px solid #bfdbfe; }
+        .quick-btn-outline:hover { background-color: #eff6ff; }
+        .quick-btn-admin { background-color: #dc2626; color: white; }
+        .quick-btn-admin:hover { background-color: #b91c1c; }
+
+        @media (max-width: 768px) {
+            .sidebar { width: 0; min-width: 0; display: none; }
+            .main-content { margin-left: 0; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
 
-    <div class="auth-bar">
-        <div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🎓</div>
+            <div class="sidebar-title">ACADEMICO</div>
+            <div class="sidebar-subtitle">Plataforma Educativa</div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-label">Menu Principal</div>
+            <a href="/" class="nav-item active">
+                <span class="nav-icon">⊞</span>
+                Inicio
+            </a>
+
+            <div class="nav-label">Academico</div>
+            <a href="/api/v1/cursos/" class="nav-item">
+                <span class="nav-icon">📚</span>
+                Cursos
+            </a>
+            <a href="/api/v1/inscripciones/" class="nav-item">
+                <span class="nav-icon">📋</span>
+                Inscripciones
+            </a>
+            <a href="/api/v1/asignaciones/" class="nav-item">
+                <span class="nav-icon">📝</span>
+                Asignaciones
+            </a>
+
+            <div class="nav-label">Mi Cuenta</div>
+            <a href="/api/v1/auth/perfil/" class="nav-item">
+                <span class="nav-icon">👤</span>
+                Mi Perfil
+            </a>
+
+            {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
+            <div class="nav-label">Administracion</div>
+            <a href="/admin/" class="nav-item">
+                <span class="nav-icon">🛡</span>
+                Panel Admin
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="sidebar-footer">
             {% if request.user.is_authenticated %}
-                Hola, <strong>{{ request.user.username }}</strong> ({{ request.user.rol }})
+            <div class="user-info">
+                <div class="user-avatar">
+                    {{ request.user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                    <div class="user-name">{{ request.user.username }}</div>
+                    <div class="user-role">{{ request.user.rol }}</div>
+                </div>
+            </div>
+            <form method="post" action="/api-auth/logout/?next=/">
+                {% csrf_token %}
+                <button type="submit" class="btn-logout">Cerrar Sesion</button>
+            </form>
             {% else %}
-                No has iniciado sesión
+            <a href="/api-auth/login/?next=/" class="btn-login">Iniciar Sesion</a>
             {% endif %}
         </div>
-        <div>
-            {% if request.user.is_authenticated %}
-                {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
-                    <a href="/admin/" style="background: #dc2626; color: white; margin-right: 0.5rem;">Panel de Administrador</a>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <div class="topbar">
+            <span class="topbar-title">Inicio</span>
+            <div class="topbar-right">
+                {% if request.user.is_authenticated %}
+                    {% if request.user.rol == 'administrador' or request.user.is_superuser %}
+                        <span class="badge-role badge-admin">Administrador</span>
+                    {% elif request.user.rol == 'profesor' %}
+                        <span class="badge-role badge-profesor">Profesor</span>
+                    {% else %}
+                        <span class="badge-role badge-estudiante">Estudiante</span>
+                    {% endif %}
+                    <span style="color:#64748b; font-size:0.875rem;">{{ request.user.username }}</span>
                 {% endif %}
-                <form method="post" action="/api-auth/logout/?next=/" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit">Cerrar Sesión</button>
-                </form>
-            {% else %}
-                <a href="/api-auth/login/?next=/">Iniciar Sesión</a>
-            {% endif %}
+            </div>
+        </div>
+
+        <div class="content">
+
+            <!-- STATS SECTION -->
+            <div class="section-title">Acceso Rapido</div>
+            <div class="section-subtitle">Resumen del sistema y acciones disponibles</div>
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon blue">📚</div>
+                        <div class="stat-count">{{ total_cursos }}</div>
+                        <div class="stat-label">Cursos Activos</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/api/v1/cursos/" class="stat-btn blue">Ver Cursos</a>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon green">🎓</div>
+                        <div class="stat-count">{{ total_estudiantes }}</div>
+                        <div class="stat-label">Estudiantes</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/api/v1/inscripciones/" class="stat-btn green">Ver Inscripciones</a>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon amber">👨‍🏫</div>
+                        <div class="stat-count">{{ total_profesores }}</div>
+                        <div class="stat-label">Profesores</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/api/v1/cursos/" class="stat-btn amber">Ver Cursos</a>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon violet">📋</div>
+                        <div class="stat-count">{{ total_inscripciones }}</div>
+                        <div class="stat-label">Inscripciones Activas</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/api/v1/inscripciones/" class="stat-btn violet">Ver Todas</a>
+                    </div>
+                </div>
+
+                {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon red">🛡</div>
+                        <div class="stat-count" style="font-size:1.2rem; margin-top:0.25rem;">Admin</div>
+                        <div class="stat-label">Panel de Control</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/admin/" class="stat-btn red">Abrir Panel</a>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            <!-- QUICK ACCESS CARDS -->
+            <div class="section-title" style="margin-bottom:0.25rem;">Gestion</div>
+            <div class="section-subtitle">Acciones disponibles segun tu rol</div>
+
+            <div class="quick-grid">
+
+                <div class="quick-card">
+                    <div class="quick-card-header">
+                        <div class="quick-card-icon blue" style="background:#dbeafe; color:#1d4ed8;">📚</div>
+                        <div class="quick-card-title">Cursos</div>
+                    </div>
+                    <p class="quick-card-desc">Explora los cursos disponibles, gestiona los tuyos o visualiza en cuales estas inscrito.</p>
+                    <div class="quick-btn-group">
+                        <a href="/api/v1/cursos/" class="quick-btn quick-btn-solid">Ver Cursos</a>
+                        <a href="/api/v1/inscripciones/" class="quick-btn quick-btn-outline">Mis Inscripciones</a>
+                    </div>
+                </div>
+
+                <div class="quick-card">
+                    <div class="quick-card-header">
+                        <div class="quick-card-icon" style="background:#dcfce7; color:#15803d; width:40px; height:40px; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">📝</div>
+                        <div class="quick-card-title">Asignaciones</div>
+                    </div>
+                    <p class="quick-card-desc">Revisa las tareas de tus cursos, envia entregas o califica las de tus estudiantes.</p>
+                    <div class="quick-btn-group">
+                        <a href="/api/v1/asignaciones/" class="quick-btn quick-btn-solid">Ver Asignaciones</a>
+                    </div>
+                </div>
+
+                <div class="quick-card">
+                    <div class="quick-card-header">
+                        <div class="quick-card-icon" style="background:#ede9fe; color:#6d28d9; width:40px; height:40px; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">👤</div>
+                        <div class="quick-card-title">Mi Cuenta</div>
+                    </div>
+                    <p class="quick-card-desc">Gestiona tu perfil, actualiza tu informacion personal y cambia tu contrasena.</p>
+                    <div class="quick-btn-group">
+                        <a href="/api/v1/auth/perfil/" class="quick-btn quick-btn-solid">Ver Perfil</a>
+                        {% if not request.user.is_authenticated %}
+                        <a href="/api/v1/auth/registro/" class="quick-btn quick-btn-outline">Registrarse</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
+                <div class="quick-card">
+                    <div class="quick-card-header">
+                        <div class="quick-card-icon" style="background:#fee2e2; color:#b91c1c; width:40px; height:40px; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">🛡</div>
+                        <div class="quick-card-title">Administracion</div>
+                    </div>
+                    <p class="quick-card-desc">Accede al panel de administracion de Django para gestionar usuarios, permisos y datos del sistema.</p>
+                    <div class="quick-btn-group">
+                        <a href="/admin/" class="quick-btn quick-btn-admin">Panel de Administrador</a>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
         </div>
     </div>
-
-    <header>
-        <h1>Plataforma Educativa</h1>
-        <p class="subtitle">Portal de acceso rápido para Estudiantes y Profesores. Selecciona la acción que deseas realizar.</p>
-    </header>
-
-    <main>
-        <div class="dashboard-grid">
-            
-            {% if request.user.is_staff or request.user.is_superuser or request.user.rol == 'administrador' %}
-            <!-- Tarjeta: Administración -->
-            <div class="card" style="border-color: #fca5a5;">
-                <h2 class="card-title">Panel de Control</h2>
-                <p class="card-desc">Acceso directo al panel de administración de Django para gestionar usuarios, permisos y datos del sistema.</p>
-                <div class="btn-group">
-                    <a href="/admin/" class="btn btn-primary" style="background-color: #dc2626;">Panel de Administrador</a>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Tarjeta: Usuarios y Autenticación -->
-            <div class="card">
-                <h2 class="card-title">Cuentas y Usuarios</h2>
-                <p class="card-desc">Registra una nueva cuenta de estudiante o profesor, o inicia sesión para acceder a la plataforma.</p>
-                <div class="btn-group">
-                    <a href="/api/v1/auth/registro/" class="btn btn-primary">Registrarse</a>
-                    <a href="/api/v1/auth/perfil/" class="btn btn-outline">Ver mi Perfil</a>
-                </div>
-            </div>
-
-            <!-- Tarjeta: Cursos -->
-            <div class="card">
-                <h2 class="card-title">Cursos</h2>
-                <p class="card-desc">Explora los cursos disponibles, crea nuevos (si eres profesor) o visualiza en los que estás inscrito.</p>
-                <div class="btn-group">
-                    <a href="/api/v1/cursos/" class="btn btn-primary">Ver Cursos</a>
-                    <a href="/api/v1/inscripciones/" class="btn btn-outline">Mis Inscripciones</a>
-                </div>
-            </div>
-
-            <!-- Tarjeta: Tareas y Entregas -->
-            <div class="card">
-                <h2 class="card-title">Asignaciones</h2>
-                <p class="card-desc">Revisa las tareas pendientes de tus cursos, envía tus entregas o califica las de tus estudiantes.</p>
-                <div class="btn-group">
-                    <a href="/api/v1/asignaciones/" class="btn btn-primary">Ver Asignaciones</a>
-                    <a href="/api/v1/cursos/" class="btn btn-outline">Ver Cursos y Asignaciones</a>
-                </div>
-            </div>
-
-        </div>
-    </main>
 
 </body>
 </html>
