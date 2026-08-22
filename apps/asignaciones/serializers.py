@@ -26,7 +26,8 @@ class AsignacionListaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asignacion
         fields = (
-            'id', 'titulo', 'tipo', 'tipo_display', 'valor_maximo',
+            'id', 'titulo', 'tipo', 'tipo_display',
+            'porcentaje', 'valor_maximo',
             'fecha_entrega', 'esta_vencida', 'acepta_entregas',
             'permite_entrega_tardia', 'total_entregas', 'url_entrega',
         )
@@ -54,7 +55,7 @@ class AsignacionDetalleSerializer(serializers.ModelSerializer):
         model = Asignacion
         fields = (
             'id', 'curso_codigo', 'curso_nombre', 'titulo', 'descripcion',
-            'tipo', 'tipo_display', 'valor_maximo', 'fecha_entrega',
+            'tipo', 'tipo_display', 'porcentaje', 'valor_maximo', 'fecha_entrega',
             'esta_vencida', 'acepta_entregas', 'permite_entrega_tardia',
             'url_entrega', 'fecha_creacion', 'fecha_actualizacion',
         )
@@ -86,7 +87,7 @@ class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
         model = Asignacion
         fields = (
             'curso', 'titulo', 'descripcion', 'tipo',
-            'valor_maximo', 'fecha_entrega', 'permite_entrega_tardia',
+            'porcentaje', 'valor_maximo', 'fecha_entrega', 'permite_entrega_tardia',
         )
 
     def __init__(self, *args, **kwargs):
@@ -104,10 +105,17 @@ class AsignacionCrearActualizarSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_porcentaje(self, value):
+        if value <= 0 or value > 100:
+            raise serializers.ValidationError(
+                'El porcentaje debe estar entre 1.00% y 100.00%.'
+            )
+        return value
+
     def validate_valor_maximo(self, value):
         if value <= 0:
             raise serializers.ValidationError(
-                'El valor maximo debe ser mayor a cero.'
+                'El puntaje maximo debe ser mayor a cero.'
             )
         return value
 

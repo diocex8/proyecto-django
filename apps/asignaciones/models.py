@@ -63,13 +63,22 @@ class Asignacion(models.Model):
         verbose_name='Tipo',
     )
 
+    porcentaje = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=25.00,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        verbose_name='Porcentaje de la nota final (%)',
+        help_text='Porcentaje del peso de esta asignacion en la nota final del curso (ej: 25.00%).',
+    )
+
     valor_maximo = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=100.00,
+        default=20.00,
         validators=[MinValueValidator(1), MaxValueValidator(100)],
-        verbose_name='Valor maximo',
-        help_text='Puntuacion maxima posible para esta asignacion.',
+        verbose_name='Puntaje maximo (Nota maxima)',
+        help_text='Puntaje maximo posible para calificar esta asignacion (ej: 20.00 pts).',
     )
 
     fecha_entrega = models.DateTimeField(

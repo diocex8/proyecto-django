@@ -52,7 +52,7 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['tipo', 'permite_entrega_tardia']
     search_fields = ['titulo', 'descripcion', 'curso__nombre', 'curso__codigo']
-    ordering_fields = ['fecha_entrega', 'valor_maximo', 'fecha_creacion']
+    ordering_fields = ['fecha_entrega', 'porcentaje', 'valor_maximo', 'fecha_creacion']
     ordering = ['fecha_entrega']
 
     def get_view_description(self, html=False):
@@ -299,7 +299,8 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
             <div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: #475569;">
                 <div><strong>Curso:</strong> {asignacion_actual.curso.nombre} ({asignacion_actual.curso.codigo})</div>
                 <div><strong>Tipo:</strong> {asignacion_actual.get_tipo_display()}</div>
-                <div><strong>Valor Maximo:</strong> {asignacion_actual.valor_maximo} pts</div>
+                <div><strong>Porcentaje:</strong> {asignacion_actual.porcentaje}%</div>
+                <div><strong>Puntaje Maximo:</strong> {asignacion_actual.valor_maximo} pts</div>
                 <div><strong>Fecha limite:</strong> {asignacion_actual.fecha_entrega.strftime('%d/%m/%Y %H:%M')}</div>
             </div>
         </div>
@@ -364,7 +365,7 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
 
                 if entrega:
                     if entrega.estado == Entrega.Estado.CALIFICADA:
-                        estado_badge = f'<span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;">Calificada ({entrega.calificacion}/{asignacion_actual.valor_maximo})</span>'
+                        estado_badge = f'<span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;">Calificada ({entrega.calificacion}/{asignacion_actual.valor_maximo} pts - {asignacion_actual.porcentaje}%)</span>'
                         boton_accion = f'<a href="/api/v1/asignaciones/{asignacion_actual.id}/entregas/{entrega.id}/calificar/" style="background: #2563eb; color: #ffffff; padding: 5px 12px; border-radius: 5px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">Modificar Nota</a>'
                     else:
                         estado_badge = '<span style="background: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 12px;">Entregada (Sin Calificar)</span>'
@@ -417,7 +418,7 @@ class EntregaListaCrearView(generics.ListCreateAPIView):
             mi_entrega = Entrega.objects.filter(asignacion=asignacion_actual, estudiante=user).first()
             if mi_entrega:
                 if mi_entrega.estado == Entrega.Estado.CALIFICADA:
-                    info_mi_entrega = f'<div style="background: #dcfce7; border: 1px solid #86efac; padding: 12px; border-radius: 6px; color: #166534; margin-top: 10px;"><strong>Tu Entrega esta Calificada:</strong> {mi_entrega.calificacion}/{asignacion_actual.valor_maximo} pts.<br><strong>Retroalimentacion:</strong> {mi_entrega.retroalimentacion or "Sin comentarios adicionales."}</div>'
+                    info_mi_entrega = f'<div style="background: #dcfce7; border: 1px solid #86efac; padding: 12px; border-radius: 6px; color: #166534; margin-top: 10px;"><strong>Tu Entrega esta Calificada:</strong> {mi_entrega.calificacion}/{asignacion_actual.valor_maximo} pts ({asignacion_actual.porcentaje}% del curso).<br><strong>Retroalimentacion:</strong> {mi_entrega.retroalimentacion or "Sin comentarios adicionales."}</div>'
                 else:
                     info_mi_entrega = '<div style="background: #fef08a; border: 1px solid #fde047; padding: 12px; border-radius: 6px; color: #854d0e; margin-top: 10px;"><strong>Tu Entrega fue Enviada:</strong> Pendiente de calificacion por el profesor.</div>'
             else:
@@ -588,6 +589,7 @@ class CalificarEntregaView(generics.GenericAPIView):
                 'exito': True,
                 'mensaje': 'Entrega calificada exitosamente.',
                 'calificacion': str(entrega_calificada.calificacion),
+                'porcentaje': str(entrega_calificada.asignacion.porcentaje),
                 'valor_maximo': str(entrega_calificada.asignacion.valor_maximo),
                 'retroalimentacion': entrega_calificada.retroalimentacion,
             },

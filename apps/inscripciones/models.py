@@ -145,17 +145,26 @@ class Inscripcion(models.Model):
         porcentaje_avance = round(min(100.0, (total_entregadas / total_planificadas) * 100), 1)
 
         if total_calificadas > 0:
-            notas_normalizadas = [
-                float(e.calificacion) / float(e.asignacion.valor_maximo) * 20.0
+            puntos_obtenidos_ponderados = sum(
+                (float(e.calificacion) / float(e.asignacion.valor_maximo)) * float(e.asignacion.porcentaje or 25.0)
                 for e in entregas_calificadas
                 if e.asignacion.valor_maximo > 0
-            ]
-            promedio_acumulado = round(sum(notas_normalizadas) / len(notas_normalizadas), 2)
-            nota_proyectada = round(sum(notas_normalizadas) / total_planificadas, 2)
+            )
+            porcentaje_evaluado = sum(
+                float(e.asignacion.porcentaje or 25.0)
+                for e in entregas_calificadas
+            )
 
-            if promedio_acumulado >= 13.0:
+            if porcentaje_evaluado > 0:
+                promedio_acumulado = round((puntos_obtenidos_ponderados / porcentaje_evaluado) * 20.0, 2)
+            else:
+                promedio_acumulado = None
+
+            nota_proyectada = round((puntos_obtenidos_ponderados / 100.0) * 20.0, 2)
+
+            if promedio_acumulado is not None and promedio_acumulado >= 13.0:
                 rendimiento = 'Aprobando (Satisfactorio)'
-            elif promedio_acumulado >= 10.5:
+            elif promedio_acumulado is not None and promedio_acumulado >= 10.5:
                 rendimiento = 'Aprobando (En riesgo)'
             else:
                 rendimiento = 'Desaprobando'
