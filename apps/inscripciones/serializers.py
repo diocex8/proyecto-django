@@ -1,9 +1,4 @@
-"""
-apps/inscripciones/serializers.py
-
-Serializadores del dominio de inscripciones.
-"""
-
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from apps.cursos.models import Curso
@@ -16,39 +11,40 @@ class InscripcionListaSerializer(serializers.ModelSerializer):
     """Serializador de lectura con datos anidados de curso y estudiante."""
     curso = CursoListaSerializer(read_only=True)
     estudiante = UsuarioResumenSerializer(read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
+    url_detalle = serializers.SerializerMethodField()
 
     class Meta:
         model = Inscripcion
         fields = (
             'id', 'curso', 'estudiante', 'estado',
-            'nota_final', 'fecha_inscripcion',
+            'estado_display', 'nota_final', 'fecha_inscripcion',
+            'url_detalle',
         )
         read_only_fields = fields
+
+    def get_url_detalle(self, obj):
+        return f"/api/v1/inscripciones/{obj.id}/"
 
 
 class InscripcionDetalleSerializer(serializers.ModelSerializer):
     """Serializador completo de una inscripcion individual."""
     curso = CursoListaSerializer(read_only=True)
     estudiante = UsuarioResumenSerializer(read_only=True)
+    estado_display = serializers.CharField(source='get_estado_display', read_only=True)
     promedio_entregas = serializers.SerializerMethodField()
 
     class Meta:
         model = Inscripcion
         fields = (
             'id', 'curso', 'estudiante', 'estado',
-            'nota_final', 'promedio_entregas',
+            'estado_display', 'nota_final', 'promedio_entregas',
             'fecha_inscripcion', 'fecha_actualizacion',
         )
-        read_only_fields = fields
+        read_only_fields = ('id', 'curso', 'estudiante', 'estado_display', 'promedio_entregas', 'fecha_inscripcion', 'fecha_actualizacion')
 
     def get_promedio_entregas(self, obj):
-        """
-        Calcula el promedio de las entregas calificadas del estudiante en este curso.
-
-        OPTIMIZACION: Usa prefetch_related desde la vista para cargar las
-        entregas en memoria antes de este calculo. Si no hay prefetch,
-        hace la consulta de forma directa (N+1 documentado).
-        """
+        """Calcula el promedio de las entregas calificadas del estudiante en este curso."""
         from django.db.models import Avg
         from apps.asignaciones.models import Entrega
 
@@ -61,31 +57,63 @@ class InscripcionDetalleSerializer(serializers.ModelSerializer):
         return round(float(promedio), 2) if promedio is not None else None
 
 
+class InscripcionModificarSerializer(serializers.ModelSerializer):
+    """
+    Permite a profesores y administradores modificar el estado y la nota final de una inscripcion.
+    """
+    class Meta:
+        model = Inscripcion
+        fields = ('estado', 'nota_final')
+
+    def validate_nota_final(self, value):
+        if value is not None and (value < 0 or value > 20):
+            raise serializers.ValidationError('La nota final debe estar entre 0.00 y 20.00.')
+        return value
+
+
 class InscripcionCrearSerializer(serializers.ModelSerializer):
     """
-    Serializador plano para inscribir a un estudiante en un curso.
-
-    Implementa validaciones de negocio:
-    - El curso debe estar publicado.
-    - El estudiante no puede estar ya inscrito.
-    - Debe haber cupos disponibles.
-    - El estudiante no puede inscribirse en un curso que el mismo dicta (si fuera profesor).
+    Serializador para inscribir a un estudiante en un curso.
+    - Estudiantes: se auto-inscriben en el curso seleccionado.
+    - Profesores / Administradores: pueden inscribir a un estudiante especifico en su curso.
     """
     curso_id = serializers.PrimaryKeyRelatedField(
         queryset=Curso.objects.filter(estado=Curso.Estado.PUBLICADO),
         source='curso',
         help_text='ID del curso publicado al que desea inscribirse.',
     )
+    estudiante_id = serializers.PrimaryKeyRelatedField(
+        queryset=get_user_model().objects.filter(rol='estudiante'),
+        source='estudiante',
+        required=False,
+        allow_null=True,
+        help_text='(Solo Profesores/Admins) ID del estudiante a inscribir.',
+    )
 
     class Meta:
         model = Inscripcion
-        fields = ('curso_id',)
+        fields = ('curso_id', 'estudiante_id')
+        validators = []
 
-    def validate_curso_id(self, curso):
-        """Validaciones de negocio sobre el curso seleccionado."""
-        estudiante = self.context['request'].user
+    def validate(self, attrs):
+        user = self.context['request'].user
+        curso = attrs.get('curso')
+        estudiante = attrs.get('estudiante')
 
-        # Verificar si ya existe una inscripcion (activa o no)
+        if getattr(user, 'es_estudiante', False):
+            estudiante = user
+            attrs['estudiante'] = user
+        else:
+            if not estudiante:
+                raise serializers.ValidationError({
+                    'estudiante_id': 'Como profesor/administrador, debes seleccionar el estudiante a inscribir.'
+                })
+            if getattr(user, 'es_profesor', False) and curso.profesor != user:
+                raise serializers.ValidationError({
+                    'curso_id': 'Solo puedes inscribir estudiantes en tus propios cursos.'
+                })
+
+        # Verificar si ya existe una inscripcion
         inscripcion_existente = Inscripcion.objects.filter(
             curso=curso,
             estudiante=estudiante,
@@ -94,12 +122,12 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         if inscripcion_existente:
             if inscripcion_existente.estado == Inscripcion.Estado.ACTIVA:
                 raise serializers.ValidationError(
-                    'Ya estas inscrito en este curso.'
+                    f'El estudiante "{estudiante.get_full_name() or estudiante.username}" ya esta inscrito activamente en este curso.'
                 )
             elif inscripcion_existente.estado == Inscripcion.Estado.RETIRADA:
-                raise serializers.ValidationError(
-                    'Te retiraste de este curso. Contacta a tu profesor para reinscribirte.'
-                )
+                # Si estaba retirada, reactivarla
+                attrs['inscripcion_reactivada'] = inscripcion_existente
+                return attrs
 
         # Verificar capacidad del curso
         inscritos_activos = curso.inscripciones.filter(
@@ -107,15 +135,16 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         ).count()
         if inscritos_activos >= curso.capacidad_maxima:
             raise serializers.ValidationError(
-                f'El curso "{curso.nombre}" no tiene cupos disponibles.'
+                f'El curso "{curso.nombre}" no tiene cupos disponibles (Capacidad: {curso.capacidad_maxima}).'
             )
 
-        return curso
+        return attrs
 
     def create(self, validated_data):
-        """Asigna el estudiante desde el usuario autenticado."""
-        estudiante = self.context['request'].user
-        return Inscripcion.objects.create(
-            estudiante=estudiante,
-            **validated_data
-        )
+        inscripcion_reactivada = validated_data.pop('inscripcion_reactivada', None)
+        if inscripcion_reactivada:
+            inscripcion_reactivada.estado = Inscripcion.Estado.ACTIVA
+            inscripcion_reactivada.save(update_fields=['estado', 'fecha_actualizacion'])
+            return inscripcion_reactivada
+
+        return Inscripcion.objects.create(**validated_data)

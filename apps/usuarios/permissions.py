@@ -116,8 +116,9 @@ class EsEstudianteInscritoOProfesorPropietario(BasePermission):
 
 class EsPropietarioDeLaInscripcion(BasePermission):
     """
-    Un estudiante solo puede gestionar sus propias inscripciones.
-    Los profesores tienen acceso de lectura a inscripciones de sus cursos.
+    - Un estudiante solo puede gestionar sus propias inscripciones (ver o retirarse).
+    - Los profesores pueden ver, calificar y modificar/retirar inscripciones de sus cursos.
+    - Los administradores tienen acceso total.
     """
     message = 'No tienes permiso para gestionar esta inscripcion.'
 
@@ -128,10 +129,11 @@ class EsPropietarioDeLaInscripcion(BasePermission):
             return True
 
         if user.es_estudiante:
+            if request.method in ('PUT', 'PATCH'):
+                return False  # Los estudiantes no pueden alterar estados ni notas directamente
             return obj.estudiante == user
 
-        if user.es_profesor and request.method in SAFE_METHODS:
-            # El profesor puede leer inscripciones de sus cursos
+        if user.es_profesor:
             return obj.curso.profesor == user
 
         return False
