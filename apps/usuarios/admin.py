@@ -8,7 +8,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import Usuario
+from .models import Usuario, SolicitudProfesor
 
 
 @admin.register(Usuario)
@@ -45,3 +45,54 @@ class UsuarioAdmin(UserAdmin):
     )
 
     readonly_fields = ('fecha_registro', 'ultima_actualizacion')
+
+
+@admin.register(SolicitudProfesor)
+class SolicitudProfesorAdmin(admin.ModelAdmin):
+    """
+    Panel de administracion para gestionar las solicitudes de registro de profesores.
+    Permite a los administradores aceptar o rechazar solicitudes con un solo clic.
+    """
+    list_display = (
+        'usuario',
+        'email',
+        'estado',
+        'fecha_solicitud',
+        'fecha_resolucion',
+        'cooldown_estado',
+    )
+    list_filter = ('estado', 'fecha_solicitud')
+    search_fields = ('email', 'usuario__first_name', 'usuario__last_name', 'usuario__username')
+    ordering = ('-fecha_solicitud',)
+    readonly_fields = ('fecha_solicitud', 'fecha_resolucion')
+    actions = ['aceptar_solicitudes', 'rechazar_solicitudes']
+
+    @admin.display(description='Estado Cooldown (2h)')
+    def cooldown_estado(self, obj):
+        if obj.esta_en_cooldown():
+            return f'Bloqueado ({obj.tiempo_restante_cooldown()} min restantes)'
+        elif obj.estado == SolicitudProfesor.Estado.RECHAZADA:
+            return 'Cooldown expirado (re-registro permitido)'
+        return '-'
+
+    @admin.action(description='Aceptar solicitudes de profesor seleccionadas')
+    def aceptar_solicitudes(self, request, queryset):
+        total = 0
+        for solicitud in queryset:
+            solicitud.aceptar()
+            total += 1
+        self.message_user(
+            request,
+            f'Se han aceptado {total} solicitud(es) de profesor y activado sus cuentas.'
+        )
+
+    @admin.action(description='Rechazar solicitudes de profesor seleccionadas')
+    def rechazar_solicitudes(self, request, queryset):
+        total = 0
+        for solicitud in queryset:
+            solicitud.rechazar(motivo='Rechazada por administrador desde el panel.')
+            total += 1
+        self.message_user(
+            request,
+            f'Se han rechazado {total} solicitud(es) de profesor. El bloqueo de 2 horas ha comenzado.'
+        )

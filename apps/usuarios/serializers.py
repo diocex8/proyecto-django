@@ -21,7 +21,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from .models import Usuario
+from .models import Usuario, SolicitudProfesor
 
 logger = logging.getLogger('gestion_academica')
 
@@ -46,10 +46,30 @@ class TokenPersonalizadoObtainSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         """
-        Sobreescribimos para usar email como campo de autenticacion.
-        AbstractUser usa 'username' por defecto, pero configuramos
-        USERNAME_FIELD = 'email' en el modelo.
+        Sobreescribimos para usar email como campo de autenticacion y
+        proporcionar mensajes especificos si la cuenta de profesor esta
+        pendiente de aprobacion o fue rechazada.
         """
+        email = attrs.get('email', '').lower().strip()
+        password = attrs.get('password')
+
+        # Verificacion previa del estado del usuario para mensajes claros
+        usuario = Usuario.objects.filter(email=email).first()
+        if usuario and usuario.check_password(password) and not usuario.is_active:
+            if usuario.es_profesor and hasattr(usuario, 'solicitud_profesor'):
+                solicitud = usuario.solicitud_profesor
+                if solicitud.estado == SolicitudProfesor.Estado.PENDIENTE:
+                    raise serializers.ValidationError({
+                        'detail': 'Tu solicitud de profesor esta pendiente de aprobacion por un administrador.'
+                    })
+                elif solicitud.estado == SolicitudProfesor.Estado.RECHAZADA:
+                    raise serializers.ValidationError({
+                        'detail': 'Tu solicitud de profesor fue rechazada. No puedes iniciar sesion.'
+                    })
+            raise serializers.ValidationError({
+                'detail': 'Esta cuenta se encuentra inactiva. Contacta al administrador.'
+            })
+
         data = super().validate(attrs)
         # Agregar informacion del usuario a la respuesta del token
         data['usuario'] = {
@@ -125,12 +145,29 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
     """
     Serializador para el registro de nuevos usuarios.
 
-    Implementa:
-    - Validacion de confirmacion de contrasena.
-    - Delegacion al validador de contrasenas de Django (politicas de seguridad).
-    - Validacion de unicidad de email a nivel de serializador (ademas del constraint de BD).
+    Reglas:
+    - Solo permite roles 'estudiante' o 'profesor'.
+    - Si el rol es 'profesor', la cuenta se crea inactiva y genera una SolicitudProfesor pendiente.
+    - Si una solicitud previa fue rechazada, bloquea el registro durante 2 horas (cooldown).
+    - Valida confirmacion de contrasena y fortaleza.
     """
 
+    email = serializers.EmailField(
+        required=True,
+        help_text='Direccion de correo electronico.',
+    )
+    username = serializers.CharField(
+        required=True,
+        help_text='Nombre de usuario.',
+    )
+    rol = serializers.ChoiceField(
+        choices=[
+            (Usuario.Rol.ESTUDIANTE, 'Estudiante'),
+            (Usuario.Rol.PROFESOR, 'Profesor'),
+        ],
+        default=Usuario.Rol.ESTUDIANTE,
+        help_text='Rol para el registro: solo se permite estudiante o profesor.',
+    )
     password = serializers.CharField(
         write_only=True,
         min_length=5,
@@ -150,33 +187,68 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
             'rol', 'password', 'password_confirmacion',
         )
         extra_kwargs = {
+            'email': {'validators': []},
+            'username': {'validators': []},
             'first_name': {'required': True},
             'last_name': {'required': True},
         }
 
     def validate_email(self, value):
-        """Validacion a nivel de campo: email en minusculas y unicidad."""
+        """
+        Validacion de email:
+        - Normalizacion a minusculas.
+        - Verificacion de cooldown de 2 horas si hubo una solicitud rechazada previa.
+        - Verificacion de solicitudes pendientes o usuarios activos existentes.
+        """
         email_normalizado = value.lower().strip()
-        if Usuario.objects.filter(email=email_normalizado).exists():
+
+        # Comprobar solicitudes previas asociadas a este correo
+        solicitud_previa = SolicitudProfesor.objects.filter(
+            email=email_normalizado
+        ).order_by('-fecha_solicitud').first()
+
+        if solicitud_previa:
+            if solicitud_previa.esta_en_cooldown():
+                minutos_restantes = solicitud_previa.tiempo_restante_cooldown()
+                raise serializers.ValidationError(
+                    f'Tu solicitud previa como profesor fue rechazada. '
+                    f'Debes esperar 2 horas antes de volver a registrarte. '
+                    f'Tiempo de espera restante: {minutos_restantes} minuto(s).'
+                )
+            elif solicitud_previa.estado == SolicitudProfesor.Estado.PENDIENTE:
+                raise serializers.ValidationError(
+                    'Ya existe una solicitud de profesor pendiente de aprobacion para este correo electronico.'
+                )
+
+        # Comprobar si existe un usuario activo
+        if Usuario.objects.filter(email=email_normalizado, is_active=True).exists():
             raise serializers.ValidationError(
                 'Ya existe un usuario registrado con este correo electronico.'
             )
+
         return email_normalizado
 
+    def validate_username(self, value):
+        """Valida que el nombre de usuario no pertenezca a una cuenta activa."""
+        username_limpio = value.strip()
+        if Usuario.objects.filter(username=username_limpio, is_active=True).exists():
+            raise serializers.ValidationError(
+                'Ya existe un usuario con este nombre de usuario.'
+            )
+        return username_limpio
+
     def validate_rol(self, value):
-        """Solo se permite registrarse como Profesor o Estudiante, no como Administrador."""
+        """Solo se permite registrarse como Profesor o Estudiante."""
         roles_permitidos = [Usuario.Rol.PROFESOR, Usuario.Rol.ESTUDIANTE]
         if value not in roles_permitidos:
             raise serializers.ValidationError(
-                'El rol de administrador no puede asignarse durante el registro.'
+                'Solo se permite el registro con rol estudiante o profesor.'
             )
         return value
 
     def validate(self, attrs):
         """
-        Validacion a nivel de objeto: se ejecuta DESPUES de todas las
-        validaciones a nivel de campo. Ideal para validaciones que
-        involucran multiples campos.
+        Validacion a nivel de objeto: coincidencia de contrasenas y validadores de Django.
         """
         password = attrs.get('password')
         password_confirmacion = attrs.pop('password_confirmacion', None)
@@ -186,8 +258,6 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
                 'password_confirmacion': 'Las contrasenas no coinciden.'
             })
 
-        # Delegar al sistema de validacion de contrasenas de Django
-        # Esto aplica todas las politicas configuradas en AUTH_PASSWORD_VALIDATORS
         try:
             validate_password(password)
         except DjangoValidationError as e:
@@ -197,17 +267,39 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Usa create_user() en lugar de create() para que Django hashee
-        la contrasena correctamente. Nunca almacenar contrasenas en texto plano.
+        Crea el usuario. Si es profesor, se crea inactivo (is_active=False)
+        y se registra su SolicitudProfesor. Si es estudiante, se activa de inmediato.
         """
         password = validated_data.pop('password')
+        email = validated_data.get('email')
+        rol = validated_data.get('rol')
+
+        # Si habia un registro anterior inactivo con cooldown ya expirado, limpiarlo
+        Usuario.objects.filter(email=email, is_active=False).delete()
+
         usuario = Usuario(**validated_data)
         usuario.set_password(password)
-        usuario.save()
-        logger.info(
-            'Nuevo usuario registrado. Email: %s, Rol: %s',
-            usuario.email, usuario.rol
-        )
+
+        if rol == Usuario.Rol.PROFESOR:
+            usuario.is_active = False
+            usuario.save()
+            SolicitudProfesor.objects.create(
+                usuario=usuario,
+                email=usuario.email,
+                estado=SolicitudProfesor.Estado.PENDIENTE,
+            )
+            logger.info(
+                'Nueva solicitud de profesor registrada. Email: %s (cuenta inactiva)',
+                usuario.email
+            )
+        else:
+            usuario.is_active = True
+            usuario.save()
+            logger.info(
+                'Nuevo estudiante registrado. Email: %s (cuenta activa)',
+                usuario.email
+            )
+
         return usuario
 
 

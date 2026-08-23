@@ -71,14 +71,24 @@ class RegistroView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         usuario = serializer.save()
+
+        if usuario.es_profesor:
+            mensaje = (
+                'Registro recibido exitosamente. Tu cuenta de profesor esta pendiente de '
+                'aprobacion por un administrador antes de poder iniciar sesion.'
+            )
+        else:
+            mensaje = 'Usuario registrado exitosamente. Ya puedes iniciar sesion.'
+
         return Response(
             {
                 'exito': True,
-                'mensaje': 'Usuario registrado exitosamente.',
+                'mensaje': mensaje,
                 'usuario': {
                     'id': usuario.pk,
                     'email': usuario.email,
                     'rol': usuario.rol,
+                    'activo': usuario.is_active,
                 },
             },
             status=status.HTTP_201_CREATED,
