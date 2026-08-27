@@ -71,13 +71,13 @@ class InscripcionModificarSerializer(serializers.ModelSerializer):
 class InscripcionCrearSerializer(serializers.ModelSerializer):
     """
     Serializador para inscribir a un estudiante en un curso.
-    - Estudiantes: se auto-inscriben en el curso seleccionado.
-    - Profesores / Administradores: pueden inscribir a un estudiante especifico en su curso.
+    - Estudiantes: solo ven y eligen el curso (estudiante_id oculto). Su solicitud queda en estado PENDIENTE.
+    - Profesores / Administradores: pueden inscribir a un estudiante directamente (estado ACTIVA).
     """
     curso_id = serializers.PrimaryKeyRelatedField(
         queryset=Curso.objects.filter(estado=Curso.Estado.PUBLICADO),
         source='curso',
-        help_text='ID del curso publicado al que desea inscribirse.',
+        help_text='Selecciona el curso al que deseas inscribirte.',
     )
     estudiante_id = serializers.PrimaryKeyRelatedField(
         queryset=get_user_model().objects.filter(rol='estudiante'),
@@ -91,6 +91,14 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         model = Inscripcion
         fields = ('curso_id', 'estudiante_id')
         validators = []
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            if getattr(user, 'es_estudiante', False):
+                self.fields.pop('estudiante_id', None)
 
     def validate(self, attrs):
         user = self.context['request'].user
@@ -110,7 +118,7 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
                     'curso_id': 'Solo puedes inscribir estudiantes en tus propios cursos.'
                 })
 
-        # Verificar si ya existe una inscripcion
+        # Verificar si ya existe una inscripcion previa
         inscripcion_existente = Inscripcion.objects.filter(
             curso=curso,
             estudiante=estudiante,
@@ -121,16 +129,16 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     f'El estudiante "{estudiante.get_full_name() or estudiante.username}" ya esta inscrito activamente en este curso.'
                 )
-            elif inscripcion_existente.estado == Inscripcion.Estado.RETIRADA:
-                # Si estaba retirada, reactivarla
+            elif inscripcion_existente.estado == Inscripcion.Estado.PENDIENTE:
+                raise serializers.ValidationError(
+                    'Ya existe una solicitud de inscripcion pendiente para este curso. Espera la aprobacion del profesor.'
+                )
+            elif inscripcion_existente.estado in (Inscripcion.Estado.RETIRADA, Inscripcion.Estado.RECHAZADA):
                 attrs['inscripcion_reactivada'] = inscripcion_existente
                 return attrs
 
-        # Verificar capacidad del curso
-        inscritos_activos = curso.inscripciones.filter(
-            estado=Inscripcion.Estado.ACTIVA
-        ).count()
-        if inscritos_activos >= curso.capacidad_maxima:
+        # Verificar cupos disponibles en el curso
+        if curso.cupos_disponibles <= 0:
             raise serializers.ValidationError(
                 f'El curso "{curso.nombre}" no tiene cupos disponibles (Capacidad: {curso.capacidad_maxima}).'
             )
@@ -138,10 +146,14 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        user = self.context['request'].user
+        nuevo_estado = Inscripcion.Estado.PENDIENTE if getattr(user, 'es_estudiante', False) else Inscripcion.Estado.ACTIVA
+
         inscripcion_reactivada = validated_data.pop('inscripcion_reactivada', None)
         if inscripcion_reactivada:
-            inscripcion_reactivada.estado = Inscripcion.Estado.ACTIVA
+            inscripcion_reactivada.estado = nuevo_estado
             inscripcion_reactivada.save(update_fields=['estado', 'fecha_actualizacion'])
             return inscripcion_reactivada
 
+        validated_data['estado'] = nuevo_estado
         return Inscripcion.objects.create(**validated_data)

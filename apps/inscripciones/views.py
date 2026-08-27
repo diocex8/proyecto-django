@@ -105,11 +105,19 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         inscripcion = serializer.save()
         estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+
+        if inscripcion.estado == Inscripcion.Estado.PENDIENTE:
+            mensaje = f'Solicitud de inscripcion enviada exitosamente para el curso "{inscripcion.curso.nombre}". Debes esperar la aceptacion del profesor.'
+        else:
+            mensaje = f'Estudiante "{estudiante_nombre}" inscrito exitosamente en el curso "{inscripcion.curso.nombre}".'
+
         return Response(
             {
                 'exito': True,
-                'mensaje': f'Estudiante "{estudiante_nombre}" inscrito exitosamente en el curso "{inscripcion.curso.nombre}".',
+                'mensaje': mensaje,
                 'inscripcion_id': inscripcion.pk,
+                'estado': inscripcion.estado,
+                'estado_display': inscripcion.get_estado_display(),
             },
             status=status.HTTP_201_CREATED,
         )
@@ -146,11 +154,16 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
             rendimiento = stats['estado_rendimiento']
             badge_color = "#16a34a" if "Aprobando" in rendimiento and "riesgo" not in rendimiento else ("#d97706" if "riesgo" in rendimiento else "#dc2626")
 
+            estado_badge_color = "#d97706" if inscripcion.estado == Inscripcion.Estado.PENDIENTE else ("#16a34a" if inscripcion.estado == Inscripcion.Estado.ACTIVA else "#dc2626")
+
             card = (
                 f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
                 f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
                 f'<h3 style="margin: 0; color: #0f172a;">Estudiante: {est.get_full_name() or est.username} ({est.email})</h3>'
+                f'<div>'
+                f'<span style="background: {estado_badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-right: 6px;">{inscripcion.get_estado_display()}</span>'
                 f'<span style="background: {badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">{rendimiento}</span>'
+                f'</div>'
                 f'</div>'
                 f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; color: #334155; margin-bottom: 14px; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;">'
                 f'<div><strong>Curso:</strong> {inscripcion.curso.nombre} ({inscripcion.curso.codigo})</div>'

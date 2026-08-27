@@ -161,7 +161,8 @@ class Curso(models.Model):
         ]
 
     def __str__(self):
-        return f'[{self.codigo}] {self.nombre}'
+        cupos = self.cupos_disponibles
+        return f'[{self.codigo}] {self.nombre} (Cupos disponibles: {cupos}/{self.capacidad_maxima})'
 
     @property
     def esta_activo(self):

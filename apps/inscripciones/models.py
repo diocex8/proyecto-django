@@ -22,7 +22,9 @@ class Inscripcion(models.Model):
     """
 
     class Estado(models.TextChoices):
+        PENDIENTE = 'pendiente', 'Pendiente de Aprobacion'
         ACTIVA = 'activa', 'Activa'
+        RECHAZADA = 'rechazada', 'Rechazada'
         RETIRADA = 'retirada', 'Retirada'
         COMPLETADA = 'completada', 'Completada'
 
@@ -44,7 +46,7 @@ class Inscripcion(models.Model):
     estado = models.CharField(
         max_length=12,
         choices=Estado.choices,
-        default=Estado.ACTIVA,
+        default=Estado.PENDIENTE,
         db_index=True,
         verbose_name='Estado',
     )
@@ -79,13 +81,13 @@ class Inscripcion(models.Model):
             # UniqueConstraint es preferible a unique_together (deprecated).
             models.UniqueConstraint(
                 fields=['curso', 'estudiante'],
-                name='uq_inscripcion_curso_estudiante',
+                name='unique_inscripcion_curso_estudiante',
             ),
         ]
         indexes = [
             models.Index(
                 fields=['estudiante', 'estado'],
-                name='idx_inscr_est_estado',
+                name='idx_inscr_estudiante_estado',
             ),
             models.Index(
                 fields=['curso', 'estado'],
@@ -94,7 +96,19 @@ class Inscripcion(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.estudiante.get_full_name()} en {self.curso.nombre}'
+        return f'{self.estudiante.get_full_name() or self.estudiante.username} en {self.curso.nombre}'
+
+    def activar(self):
+        """Aprueba y activa la inscripcion."""
+        self.estado = self.Estado.ACTIVA
+        self.save(update_fields=['estado', 'fecha_actualizacion'])
+        logger.info('Inscripcion aprobada y activada. ID: %s', self.pk)
+
+    def rechazar(self):
+        """Rechaza la solicitud de inscripcion."""
+        self.estado = self.Estado.RECHAZADA
+        self.save(update_fields=['estado', 'fecha_actualizacion'])
+        logger.info('Inscripcion rechazada. ID: %s', self.pk)
 
     def retirar(self):
         """
