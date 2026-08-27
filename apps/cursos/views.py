@@ -213,6 +213,88 @@ class CursoViewSet(viewsets.ModelViewSet):
         serializer = AsignacionListaSerializer(pagina, many=True)
         return paginator.get_paginated_response(serializer.data)
 
+    def get_view_description(self, html=False):
+        if not html:
+            return "Cursos"
+
+        user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
+        if not (user and user.is_authenticated and (user.es_profesor or user.es_administrador)):
+            return ""
+
+        from django.utils.safestring import mark_safe
+        from apps.inscripciones.models import Inscripcion
+
+        # Si esta en la vista de detalle de un curso
+        curso = None
+        if hasattr(self, 'get_object'):
+            try:
+                curso = self.get_object()
+            except Exception:
+                pass
+
+        if curso:
+            solicitudes = Inscripcion.objects.filter(
+                curso=curso,
+                estado=Inscripcion.Estado.PENDIENTE
+            ).select_related('estudiante').order_by('-fecha_inscripcion')
+            titulo = f'Solicitudes Pendientes para {curso.nombre} ({solicitudes.count()})'
+        else:
+            if user.es_profesor and not user.es_administrador:
+                solicitudes = Inscripcion.objects.filter(
+                    curso__profesor=user,
+                    estado=Inscripcion.Estado.PENDIENTE
+                ).select_related('curso', 'estudiante').order_by('-fecha_inscripcion')
+            else:
+                solicitudes = Inscripcion.objects.filter(
+                    estado=Inscripcion.Estado.PENDIENTE
+                ).select_related('curso', 'estudiante').order_by('-fecha_inscripcion')
+            titulo = f'Solicitudes de Inscripcion Pendientes en tus Cursos ({solicitudes.count()})'
+
+        total = solicitudes.count()
+        if total == 0:
+            html_out = '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; color: #475569;">'
+            html_out += '<strong>Solicitudes de Inscripcion:</strong> No hay solicitudes pendientes por revisar.'
+            html_out += '</div>'
+            return mark_safe(html_out)
+
+        html_out = f'<div style="background: #fefce8; border: 1px solid #fef08a; padding: 14px; border-radius: 8px; margin-bottom: 16px;">'
+        html_out += f'<h4 style="margin: 0 0 10px 0; color: #854d0e; font-size: 14px; font-weight: 700;">{titulo}</h4>'
+        html_out += '<div style="display: flex; flex-direction: column; gap: 8px;">'
+        for sol in solicitudes[:10]:
+            est_nom = sol.estudiante.get_full_name() or sol.estudiante.username
+            html_out += f'<div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #fde047; font-size: 13px;">'
+            html_out += f'<div><strong>{est_nom}</strong> ({sol.estudiante.email}) &rarr; <em>{sol.curso.nombre}</em></div>'
+            html_out += f'<div style="display: flex; gap: 6px;">'
+            html_out += f'<a href="/api/v1/inscripciones/{sol.id}/aprobar/" style="background: #16a34a; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">Aceptar</a>'
+            html_out += f'<a href="/api/v1/inscripciones/{sol.id}/rechazar/" style="background: #dc2626; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">Rechazar</a>'
+            html_out += f'</div></div>'
+        html_out += '</div></div>'
+        return mark_safe(html_out)
+
+    @action(detail=True, methods=['get'], url_path='solicitudes')
+    def listar_solicitudes(self, request, pk=None):
+        """
+        Lista las solicitudes pendientes de inscripcion para este curso.
+        GET /api/v1/cursos/{id}/solicitudes/
+        """
+        curso = self.get_object()
+        if not (request.user.es_administrador or (request.user.es_profesor and curso.profesor == request.user)):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Solo el profesor propietario o un administrador puede ver las solicitudes.')
+
+        solicitudes = Inscripcion.objects.filter(
+            curso=curso,
+            estado=Inscripcion.Estado.PENDIENTE
+        ).select_related('estudiante').order_by('-fecha_inscripcion')
+
+        from apps.inscripciones.serializers import InscripcionListaSerializer
+        from config.pagination import PaginacionInscripciones
+
+        paginator = PaginacionInscripciones()
+        pagina = paginator.paginate_queryset(solicitudes, request)
+        serializer = InscripcionListaSerializer(pagina, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
     @action(detail=True, methods=['get'], url_path='inscripciones')
     def listar_inscripciones(self, request, pk=None):
         """

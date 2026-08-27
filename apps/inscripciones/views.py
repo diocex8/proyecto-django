@@ -156,6 +156,17 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
 
             estado_badge_color = "#d97706" if inscripcion.estado == Inscripcion.Estado.PENDIENTE else ("#16a34a" if inscripcion.estado == Inscripcion.Estado.ACTIVA else "#dc2626")
 
+            botones_solicitud = ""
+            if inscripcion.estado == Inscripcion.Estado.PENDIENTE:
+                user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
+                if user and (user.es_administrador or (user.es_profesor and inscripcion.curso.profesor == user)):
+                    botones_solicitud = (
+                        f'<div style="margin-top: 12px; margin-bottom: 12px; display: flex; gap: 8px;">'
+                        f'<a href="/api/v1/inscripciones/{inscripcion.id}/aprobar/" style="background: #16a34a; color: #ffffff; padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Aceptar Solicitud</a>'
+                        f'<a href="/api/v1/inscripciones/{inscripcion.id}/rechazar/" style="background: #dc2626; color: #ffffff; padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Rechazar Solicitud</a>'
+                        f'</div>'
+                    )
+
             card = (
                 f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
                 f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
@@ -176,6 +187,7 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
                 f'<div><strong>Nota Final Asignada:</strong> <span style="font-weight: bold; color: #16a34a;">{inscripcion.nota_final or "Pendiente"}</span></div>'
                 f'<div><strong>Estado Inscripcion:</strong> {inscripcion.get_estado_display()}</div>'
                 f'</div>'
+                f'{botones_solicitud}'
                 f'<a href="/api/v1/inscripciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">&larr; Volver a la Lista de Inscripciones</a>'
                 f'</div>'
             )
@@ -218,3 +230,55 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class AprobarInscripcionView(generics.GenericAPIView):
+    """
+    POST/GET /api/v1/inscripciones/{id}/aprobar/
+    Permite al profesor propietario o administrador aprobar y activar una inscripcion.
+    """
+    permission_classes = [IsAuthenticated, EsPropietarioDeLaInscripcion]
+    queryset = Inscripcion.objects.select_related('curso', 'estudiante')
+
+    def post(self, request, pk):
+        inscripcion = self.get_object()
+        if not (request.user.es_administrador or (request.user.es_profesor and inscripcion.curso.profesor == request.user)):
+            return Response({'error': 'No tienes permisos para aprobar esta inscripcion.'}, status=status.HTTP_403_FORBIDDEN)
+
+        inscripcion.activar()
+        estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+        return Response({
+            'exito': True,
+            'mensaje': f'Inscripcion del estudiante "{estudiante_nombre}" en el curso "{inscripcion.curso.nombre}" aprobada y activada exitosamente.',
+            'estado': inscripcion.estado,
+            'estado_display': inscripcion.get_estado_display(),
+        })
+
+    def get(self, request, pk):
+        return self.post(request, pk)
+
+
+class RechazarInscripcionView(generics.GenericAPIView):
+    """
+    POST/GET /api/v1/inscripciones/{id}/rechazar/
+    Permite al profesor propietario o administrador rechazar una solicitud de inscripcion.
+    """
+    permission_classes = [IsAuthenticated, EsPropietarioDeLaInscripcion]
+    queryset = Inscripcion.objects.select_related('curso', 'estudiante')
+
+    def post(self, request, pk):
+        inscripcion = self.get_object()
+        if not (request.user.es_administrador or (request.user.es_profesor and inscripcion.curso.profesor == request.user)):
+            return Response({'error': 'No tienes permisos para rechazar esta inscripcion.'}, status=status.HTTP_403_FORBIDDEN)
+
+        inscripcion.rechazar()
+        estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+        return Response({
+            'exito': True,
+            'mensaje': f'Solicitud de inscripcion del estudiante "{estudiante_nombre}" para el curso "{inscripcion.curso.nombre}" ha sido rechazada.',
+            'estado': inscripcion.estado,
+            'estado_display': inscripcion.get_estado_display(),
+        })
+
+    def get(self, request, pk):
+        return self.post(request, pk)
