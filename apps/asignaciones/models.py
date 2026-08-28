@@ -227,17 +227,15 @@ class Entrega(models.Model):
     def calificar(self, nota, retroalimentacion=''):
         """
         Metodo de negocio: califica la entrega con validacion de rango.
-
-        La logica de negocio vive en el modelo para que sea reutilizable
-        desde la vista, desde el admin y desde tareas programadas.
+        Permite asignar o modificar la calificacion.
         """
         valor_maximo = self.asignacion.valor_maximo
-        if nota > valor_maximo:
+        if float(nota) > float(valor_maximo):
             raise ValueError(
                 f'La calificacion ({nota}) no puede superar el valor '
                 f'maximo de la asignacion ({valor_maximo}).'
             )
-        if nota < 0:
+        if float(nota) < 0:
             raise ValueError('La calificacion no puede ser negativa.')
 
         self.calificacion = nota
@@ -248,6 +246,16 @@ class Entrega(models.Model):
             'calificacion', 'retroalimentacion', 'estado', 'fecha_calificacion'
         ])
         logger.info(
-            'Entrega calificada. ID: %s, Nota: %s/%s',
+            'Entrega calificada/actualizada. ID: %s, Nota: %s/%s',
             self.pk, nota, valor_maximo
         )
+
+    def devolver(self, retroalimentacion=''):
+        """
+        Metodo de negocio: devuelve la entrega al estudiante para que la vuelva a hacer.
+        """
+        self.estado = self.Estado.DEVUELTA
+        self.retroalimentacion = retroalimentacion
+        self.calificacion = None
+        self.save(update_fields=['estado', 'retroalimentacion', 'calificacion'])
+        logger.info('Entrega devuelta para revision. ID: %s', self.pk)

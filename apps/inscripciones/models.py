@@ -171,6 +171,10 @@ class Inscripcion(models.Model):
                 rendimiento = 'Aprobando (En riesgo)'
             else:
                 rendimiento = 'Desaprobando'
+
+            if promedio_acumulado is not None and self.nota_final != promedio_acumulado:
+                self.nota_final = promedio_acumulado
+                self.save(update_fields=['nota_final'])
         else:
             promedio_acumulado = None
             nota_proyectada = 0.0

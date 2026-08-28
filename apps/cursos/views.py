@@ -1,6 +1,4 @@
 """
-apps/cursos/views.py
-
 Vistas del dominio de los cursos
 
 """

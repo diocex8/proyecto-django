@@ -561,10 +561,6 @@ class CalificarEntregaView(generics.GenericAPIView):
     def _procesar_calificacion(self, request):
         entrega = self._obtener_entrega()
 
-        if entrega.estado == Entrega.Estado.CALIFICADA:
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError('Esta entrega ya ha sido calificada.')
-
         raw_data = request.data
         if isinstance(raw_data, (int, float, str)):
             datos = {'calificacion': raw_data, 'retroalimentacion': ''}
@@ -572,6 +568,14 @@ class CalificarEntregaView(generics.GenericAPIView):
             datos = raw_data
         else:
             datos = {}
+
+        if datos.get('accion') == 'devolver':
+            entrega.devolver(retroalimentacion=datos.get('retroalimentacion', 'Debes volver a realizar esta tarea.'))
+            return Response({
+                'exito': True,
+                'mensaje': 'Entrega devuelta al estudiante para revision.',
+                'estado': entrega.estado,
+            }, status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(
             data=datos,
@@ -583,7 +587,7 @@ class CalificarEntregaView(generics.GenericAPIView):
         return Response(
             {
                 'exito': True,
-                'mensaje': 'Entrega calificada exitosamente.',
+                'mensaje': 'Calificacion guardada exitosamente.',
                 'calificacion': str(entrega_calificada.calificacion),
                 'porcentaje': str(entrega_calificada.asignacion.porcentaje),
                 'valor_maximo': str(entrega_calificada.asignacion.valor_maximo),
@@ -591,3 +595,71 @@ class CalificarEntregaView(generics.GenericAPIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class CalificarEstudianteAsignacionView(generics.GenericAPIView):
+    """
+    POST /api/v1/asignaciones/{asignacion_id}/estudiantes/{estudiante_id}/calificar/
+    Permite al profesor calificar o modificar directamente la nota de un estudiante para una tarea especifica.
+    """
+    permission_classes = [IsAuthenticated, EsProfesor]
+
+    def post(self, request, asignacion_id, estudiante_id):
+        from apps.usuarios.models import Usuario
+
+        try:
+            asignacion = Asignacion.objects.select_related('curso').get(pk=asignacion_id)
+        except Asignacion.DoesNotExist:
+            return Response({'error': 'Asignacion no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not (request.user.es_administrador or asignacion.curso.profesor == request.user):
+            return Response({'error': 'No tienes permisos para calificar en este curso.'}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            estudiante = Usuario.objects.get(pk=estudiante_id, rol='estudiante')
+        except Usuario.DoesNotExist:
+            return Response({'error': 'Estudiante no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        entrega, _ = Entrega.objects.get_or_create(
+            asignacion=asignacion,
+            estudiante=estudiante,
+            defaults={
+                'contenido': 'Calificacion / Registro directo por el profesor.',
+                'estado': Entrega.Estado.ENVIADA,
+            }
+        )
+
+        accion = request.data.get('accion')
+        if accion == 'devolver':
+            retro = request.data.get('retroalimentacion', 'Debes volver a realizar esta tarea.')
+            entrega.devolver(retroalimentacion=retro)
+            return Response({
+                'exito': True,
+                'mensaje': f'Asignacion "{asignacion.titulo}" marcada para que el estudiante la vuelva a hacer.',
+                'estado': entrega.estado,
+            }, status=status.HTTP_200_OK)
+
+        nota = request.data.get('calificacion')
+        if nota is None or str(nota).strip() == '':
+            return Response({'error': 'Debes ingresar una calificacion numerica.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            nota_float = float(nota)
+        except (ValueError, TypeError):
+            return Response({'error': 'La calificacion debe ser un numero valido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if nota_float < 0 or nota_float > float(asignacion.valor_maximo):
+            return Response({'error': f'La nota debe estar entre 0 y {asignacion.valor_maximo}.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        retro = request.data.get('retroalimentacion', '')
+        entrega.calificar(nota=nota_float, retroalimentacion=retro)
+
+        return Response({
+            'exito': True,
+            'mensaje': f'Nota guardada para "{asignacion.titulo}": {nota_float}/{asignacion.valor_maximo}.',
+            'calificacion': nota_float,
+            'estado': entrega.estado,
+        }, status=status.HTTP_200_OK)
+
+    def get(self, request, asignacion_id, estudiante_id):
+        return Response({'mensaje': 'Utiliza el metodo POST para calificar o modificar la nota.'})

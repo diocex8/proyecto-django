@@ -18,6 +18,7 @@ from .views import (
     EntregaListaCrearView,
     EntregaDetalleView,
     CalificarEntregaView,
+    CalificarEstudianteAsignacionView,
 )
 
 urlpatterns = [
@@ -40,5 +41,10 @@ urlpatterns = [
         '<int:asignacion_id>/entregas/<int:pk>/calificar/',
         CalificarEntregaView.as_view(),
         name='entrega-calificar',
+    ),
+    path(
+        '<int:asignacion_id>/estudiantes/<int:estudiante_id>/calificar/',
+        CalificarEstudianteAsignacionView.as_view(),
+        name='asignacion-calificar-estudiante',
     ),
 ]

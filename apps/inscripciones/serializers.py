@@ -56,16 +56,12 @@ class InscripcionDetalleSerializer(serializers.ModelSerializer):
 
 class InscripcionModificarSerializer(serializers.ModelSerializer):
     """
-    Permite a profesores y administradores modificar el estado y la nota final de una inscripcion.
+    Permite a profesores y administradores modificar el estado de una inscripcion.
+    La nota final se calcula automaticamente a partir de las asignaciones calificadas.
     """
     class Meta:
         model = Inscripcion
-        fields = ('estado', 'nota_final')
-
-    def validate_nota_final(self, value):
-        if value is not None and (value < 0 or value > 20):
-            raise serializers.ValidationError('La nota final debe estar entre 0.00 y 20.00.')
-        return value
+        fields = ('estado',)
 
 
 class InscripcionCrearSerializer(serializers.ModelSerializer):

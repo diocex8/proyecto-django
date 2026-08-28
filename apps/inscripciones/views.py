@@ -290,52 +290,204 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
         except Exception:
             pass
 
-        if inscripcion:
-            est = inscripcion.estudiante
-            stats = inscripcion.calcular_estadisticas_academicas()
-            rendimiento = stats['estado_rendimiento']
-            badge_color = "#16a34a" if "Aprobando" in rendimiento and "riesgo" not in rendimiento else ("#d97706" if "riesgo" in rendimiento else "#dc2626")
+        if not inscripcion:
+            return "Detalle de Inscripcion" if not html else ""
 
-            estado_badge_color = "#d97706" if inscripcion.estado == Inscripcion.Estado.PENDIENTE else ("#16a34a" if inscripcion.estado == Inscripcion.Estado.ACTIVA else "#dc2626")
+        from apps.asignaciones.models import Asignacion, Entrega
 
-            botones_solicitud = ""
-            if inscripcion.estado == Inscripcion.Estado.PENDIENTE:
-                user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
-                if user and (user.es_administrador or (user.es_profesor and inscripcion.curso.profesor == user)):
-                    botones_solicitud = (
-                        f'<div style="margin-top: 12px; margin-bottom: 12px; display: flex; gap: 8px;">'
-                        f'<a href="/api/v1/inscripciones/{inscripcion.id}/aprobar/" style="background: #16a34a; color: #ffffff; padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Aceptar Solicitud</a>'
-                        f'<a href="/api/v1/inscripciones/{inscripcion.id}/rechazar/" style="background: #dc2626; color: #ffffff; padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Rechazar Solicitud</a>'
-                        f'</div>'
-                    )
+        est = inscripcion.estudiante
+        stats = inscripcion.calcular_estadisticas_academicas()
+        rendimiento = stats['estado_rendimiento']
+        badge_color = "#16a34a" if "Aprobando" in rendimiento and "riesgo" not in rendimiento else ("#d97706" if "riesgo" in rendimiento else "#dc2626")
+        estado_badge_color = "#d97706" if inscripcion.estado == Inscripcion.Estado.PENDIENTE else ("#16a34a" if inscripcion.estado == Inscripcion.Estado.ACTIVA else "#dc2626")
 
-            card = (
-                f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
-                f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
-                f'<h3 style="margin: 0; color: #0f172a;">Estudiante: {est.get_full_name() or est.username} ({est.email})</h3>'
-                f'<div>'
-                f'<span style="background: {estado_badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-right: 6px;">{inscripcion.get_estado_display()}</span>'
-                f'<span style="background: {badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">{rendimiento}</span>'
-                f'</div>'
-                f'</div>'
-                f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; color: #334155; margin-bottom: 14px; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;">'
-                f'<div><strong>Curso:</strong> {inscripcion.curso.nombre} ({inscripcion.curso.codigo})</div>'
-                f'<div><strong>Asignaciones Planificadas:</strong> {stats["total_asignaciones_planificadas"]}</div>'
-                f'<div><strong>Asignaciones Publicadas:</strong> {stats["asignaciones_publicadas"]}</div>'
-                f'<div><strong>Entregas Enviadas:</strong> {stats["entregas_enviadas"]} / {stats["total_asignaciones_planificadas"]} ({stats["porcentaje_avance"]})</div>'
-                f'<div><strong>Evaluaciones Calificadas:</strong> {stats["entregas_calificadas"]}</div>'
-                f'<div><strong>Promedio Evaluaciones (0-20):</strong> <span style="font-weight: bold; color: #2563eb;">{stats["promedio_acumulado_base20"] or "Sin calificar"}</span></div>'
-                f'<div><strong>Nota Proyectada Curso (0-20):</strong> <span style="font-weight: bold; color: #0f172a;">{stats["nota_proyectada_curso"]}</span></div>'
-                f'<div><strong>Nota Final Asignada:</strong> <span style="font-weight: bold; color: #16a34a;">{inscripcion.nota_final or "Pendiente"}</span></div>'
-                f'<div><strong>Estado Inscripcion:</strong> {inscripcion.get_estado_display()}</div>'
-                f'</div>'
-                f'{botones_solicitud}'
-                f'<a href="/api/v1/inscripciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">&larr; Volver a la Lista de Inscripciones</a>'
+        user = getattr(self, 'request', None) and getattr(self.request, 'user', None)
+        es_profesor_o_admin = user and (user.es_administrador or (user.es_profesor and inscripcion.curso.profesor == user))
+
+        botones_solicitud = ""
+        if inscripcion.estado == Inscripcion.Estado.PENDIENTE and es_profesor_o_admin:
+            botones_solicitud = (
+                f'<div style="margin-top: 12px; margin-bottom: 12px; display: flex; gap: 8px;">'
+                f'<a href="/api/v1/inscripciones/{inscripcion.id}/aprobar/" style="background: #16a34a; color: #ffffff; padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Aceptar Solicitud</a>'
+                f'<a href="/api/v1/inscripciones/{inscripcion.id}/rechazar/" style="background: #dc2626; color: #ffffff; padding: 7px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Rechazar Solicitud</a>'
                 f'</div>'
             )
-            return mark_safe(card) if html else "Detalle de Inscripcion"
 
-        return ""
+        card_perfil = (
+            f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
+            f'<h3 style="margin: 0; color: #0f172a;">Estudiante: {est.get_full_name() or est.username} ({est.email})</h3>'
+            f'<div>'
+            f'<span style="background: {estado_badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-right: 6px;">{inscripcion.get_estado_display()}</span>'
+            f'<span style="background: {badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">{rendimiento}</span>'
+            f'</div>'
+            f'</div>'
+            f'<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; font-size: 13px; color: #334155; margin-bottom: 14px; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e1;">'
+            f'<div><strong>Curso:</strong> {inscripcion.curso.nombre} ({inscripcion.curso.codigo})</div>'
+            f'<div><strong>Asignaciones Planificadas:</strong> {stats["total_asignaciones_planificadas"]}</div>'
+            f'<div><strong>Asignaciones Publicadas:</strong> {stats["asignaciones_publicadas"]}</div>'
+            f'<div><strong>Entregas Enviadas:</strong> {stats["entregas_enviadas"]} / {stats["total_asignaciones_planificadas"]} ({stats["porcentaje_avance"]})</div>'
+            f'<div><strong>Evaluaciones Calificadas:</strong> {stats["entregas_calificadas"]}</div>'
+            f'<div><strong>Promedio Calculado (0-20):</strong> <span style="font-weight: bold; color: #2563eb;">{stats["promedio_acumulado_base20"] or "Sin calificar"}</span></div>'
+            f'<div><strong>Nota Proyectada (0-20):</strong> <span style="font-weight: bold; color: #0f172a;">{stats["nota_proyectada_curso"]}</span></div>'
+            f'<div><strong>Nota Final (Auto-calculada):</strong> <span style="font-weight: bold; color: #16a34a;">{inscripcion.nota_final or "Pendiente"}</span></div>'
+            f'</div>'
+            f'{botones_solicitud}'
+            f'<a href="/api/v1/inscripciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; display: inline-block;">&larr; Volver a la Lista de Inscripciones</a>'
+            f'</div>'
+        )
+
+        asignaciones = Asignacion.objects.filter(curso=inscripcion.curso).order_by('fecha_entrega', 'id')
+        entregas = Entrega.objects.filter(asignacion__curso=inscripcion.curso, estudiante=est)
+        map_entregas = {e.asignacion_id: e for e in entregas}
+
+        seccion_asignaciones = '<div style="background: #ffffff; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 20px;">'
+        seccion_asignaciones += f'<h3 style="margin-top: 0; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">Asignaciones del Curso y Calificaciones ({asignaciones.count()})</h3>'
+
+        if not asignaciones.exists():
+            seccion_asignaciones += '<p style="color: #64748b; font-size: 13px;">No hay asignaciones creadas en este curso todavia.</p>'
+        else:
+            seccion_asignaciones += '<div style="display: flex; flex-direction: column; gap: 14px;">'
+            for asig in asignaciones:
+                entrega = map_entregas.get(asig.id)
+                valor_max = asig.valor_maximo
+                porc = asig.porcentaje
+
+                if entrega:
+                    if entrega.estado == Entrega.Estado.CALIFICADA and entrega.calificacion is not None:
+                        estado_badge = f'<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">CALIFICADA: {entrega.calificacion}/{valor_max} pts</span>'
+                        val_nota = str(entrega.calificacion)
+                        val_retro = entrega.retroalimentacion or ""
+                    elif entrega.estado == Entrega.Estado.DEVUELTA:
+                        estado_badge = '<span style="background: #ffedd5; color: #c2410c; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">DEVUELTA (VOLVER A HACER)</span>'
+                        val_nota = ""
+                        val_retro = entrega.retroalimentacion or ""
+                    else:
+                        estado_badge = '<span style="background: #dbeafe; color: #1e40af; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">ENTREGADA (PENDIENTE CALIFICAR)</span>'
+                        val_nota = ""
+                        val_retro = entrega.retroalimentacion or ""
+                else:
+                    estado_badge = '<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;">SIN ENTREGAR / PENDIENTE</span>'
+                    val_nota = ""
+                    val_retro = ""
+
+                control_profesor = ""
+                if es_profesor_o_admin:
+                    control_profesor = f"""
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e2e8f0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                        <label style="font-size: 12px; font-weight: 600; color: #334155;">Nota (0 a {valor_max}):</label>
+                        <input type="number" id="nota-asig-{asig.id}" value="{val_nota}" min="0" max="{valor_max}" step="0.5" placeholder="Nota..." style="width: 80px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px;">
+                        
+                        <input type="text" id="retro-asig-{asig.id}" value="{val_retro}" placeholder="Comentario o retroalimentacion..." style="flex: 1; min-width: 200px; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px;">
+                        
+                        <button type="button" onclick="guardarNotaAsignacion({asig.id}, {est.id})" style="background: #16a34a; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Guardar / Modificar Nota</button>
+                        <button type="button" onclick="devolverAsignacion({asig.id}, {est.id})" style="background: #ea580c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer;">Volver a hacer (Devolver)</button>
+                        <div id="msg-asig-{asig.id}" style="width: 100%; font-size: 12px; margin-top: 4px;"></div>
+                    </div>
+                    """
+
+                seccion_asignaciones += f"""
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="font-weight: 700; color: #0f172a; font-size: 14px;">[{asig.get_tipo_display()}] {asig.titulo}</span>
+                            <span style="font-size: 12px; color: #64748b; margin-left: 8px;">Ponderacion: {porc}% | Max: {valor_max} pts</span>
+                        </div>
+                        <div>
+                            {estado_badge}
+                        </div>
+                    </div>
+                    {control_profesor}
+                </div>
+                """
+            seccion_asignaciones += '</div>'
+
+        seccion_asignaciones += '</div>'
+
+        script_js = """
+        <script>
+        function getCsrfToken() {
+            var cookieValue = document.cookie
+              .split('; ')
+              .find(function(row) { return row.startsWith('csrftoken='); });
+            return cookieValue ? cookieValue.split('=')[1] : '';
+        }
+
+        function guardarNotaAsignacion(asignacionId, estudianteId) {
+            var inputNota = document.getElementById('nota-asig-' + asignacionId);
+            var inputRetro = document.getElementById('retro-asig-' + asignacionId);
+            var msgDiv = document.getElementById('msg-asig-' + asignacionId);
+
+            var calificacion = inputNota ? inputNota.value : '';
+            var retroalimentacion = inputRetro ? inputRetro.value : '';
+
+            if (calificacion === '' || calificacion === null) {
+                alert('Por favor ingresa una nota valida.');
+                return;
+            }
+
+            msgDiv.innerHTML = '<span style="color: #64748b;">Guardando nota...</span>';
+
+            fetch('/api/v1/asignaciones/' + asignacionId + '/estudiantes/' + estudianteId + '/calificar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    calificacion: calificacion,
+                    retroalimentacion: retroalimentacion
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.exito) {
+                    msgDiv.innerHTML = '<span style="color: #16a34a; font-weight: bold;">✓ ' + data.mensaje + ' (Actualizando promedios...)</span>';
+                    setTimeout(function() { window.location.reload(); }, 900);
+                } else {
+                    msgDiv.innerHTML = '<span style="color: #dc2626; font-weight: bold;">✗ ' + (data.error || 'Error al guardar') + '</span>';
+                }
+            })
+            .catch(function(err) {
+                msgDiv.innerHTML = '<span style="color: #dc2626;">Error de conexion al guardar.</span>';
+            });
+        }
+
+        function devolverAsignacion(asignacionId, estudianteId) {
+            var inputRetro = document.getElementById('retro-asig-' + asignacionId);
+            var msgDiv = document.getElementById('msg-asig-' + asignacionId);
+            var retroalimentacion = inputRetro ? inputRetro.value : 'Debes volver a realizar esta tarea.';
+
+            msgDiv.innerHTML = '<span style="color: #64748b;">Marcando tarea para volver a hacer...</span>';
+
+            fetch('/api/v1/asignaciones/' + asignacionId + '/estudiantes/' + estudianteId + '/calificar/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify({
+                    accion: 'devolver',
+                    retroalimentacion: retroalimentacion
+                })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.exito) {
+                    msgDiv.innerHTML = '<span style="color: #ea580c; font-weight: bold;">✓ ' + data.mensaje + '</span>';
+                    setTimeout(function() { window.location.reload(); }, 900);
+                } else {
+                    msgDiv.innerHTML = '<span style="color: #dc2626; font-weight: bold;">✗ ' + (data.error || 'Error al devolver') + '</span>';
+                }
+            })
+            .catch(function(err) {
+                msgDiv.innerHTML = '<span style="color: #dc2626;">Error de conexion.</span>';
+            });
+        }
+        </script>
+        """
+
+        return mark_safe(card_perfil + seccion_asignaciones + script_js) if html else "Detalle de Inscripcion"
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', True)
