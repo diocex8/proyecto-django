@@ -96,6 +96,11 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
             # Solo los administradores ven el campo estudiante_id
             if not getattr(user, 'es_administrador', False):
                 self.fields.pop('estudiante_id', None)
+            # Los profesores solo ven sus propios cursos
+            if getattr(user, 'es_profesor', False) and not getattr(user, 'es_administrador', False):
+                self.fields['curso_id'].queryset = Curso.objects.filter(
+                    estado=Curso.Estado.PUBLICADO, profesor=user
+                )
 
     def validate(self, attrs):
         user = self.context['request'].user
