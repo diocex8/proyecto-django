@@ -531,13 +531,28 @@ class AprobarInscripcionView(generics.GenericAPIView):
     POST/GET /api/v1/inscripciones/{id}/aprobar/
     Permite al profesor propietario o administrador aprobar y activar una inscripcion.
     """
-    permission_classes = [IsAuthenticated, EsPropietarioDeLaInscripcion]
+    permission_classes = [IsAuthenticated]
     queryset = Inscripcion.objects.select_related('curso', 'estudiante')
 
+    def _verificar_permiso(self, request, inscripcion):
+        user = request.user
+        if user.es_administrador:
+            return True
+        if user.es_profesor and inscripcion.curso.profesor == user:
+            return True
+        return False
+
     def post(self, request, pk):
-        inscripcion = self.get_object()
-        if not (request.user.es_administrador or (request.user.es_profesor and inscripcion.curso.profesor == request.user)):
+        try:
+            inscripcion = self.get_object()
+        except Exception:
+            return Response({'error': 'Inscripcion no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not self._verificar_permiso(request, inscripcion):
             return Response({'error': 'No tienes permisos para aprobar esta inscripcion.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if inscripcion.estado != Inscripcion.Estado.PENDIENTE:
+            return Response({'error': f'Solo se pueden aprobar inscripciones en estado PENDIENTE. Estado actual: {inscripcion.get_estado_display()}'}, status=status.HTTP_400_BAD_REQUEST)
 
         inscripcion.activar()
         estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
@@ -557,13 +572,28 @@ class RechazarInscripcionView(generics.GenericAPIView):
     POST/GET /api/v1/inscripciones/{id}/rechazar/
     Permite al profesor propietario o administrador rechazar una solicitud de inscripcion.
     """
-    permission_classes = [IsAuthenticated, EsPropietarioDeLaInscripcion]
+    permission_classes = [IsAuthenticated]
     queryset = Inscripcion.objects.select_related('curso', 'estudiante')
 
+    def _verificar_permiso(self, request, inscripcion):
+        user = request.user
+        if user.es_administrador:
+            return True
+        if user.es_profesor and inscripcion.curso.profesor == user:
+            return True
+        return False
+
     def post(self, request, pk):
-        inscripcion = self.get_object()
-        if not (request.user.es_administrador or (request.user.es_profesor and inscripcion.curso.profesor == request.user)):
+        try:
+            inscripcion = self.get_object()
+        except Exception:
+            return Response({'error': 'Inscripcion no encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if not self._verificar_permiso(request, inscripcion):
             return Response({'error': 'No tienes permisos para rechazar esta inscripcion.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if inscripcion.estado == Inscripcion.Estado.ACTIVA:
+            return Response({'error': 'No se puede rechazar una inscripcion ya activa.'}, status=status.HTTP_400_BAD_REQUEST)
 
         inscripcion.rechazar()
         estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
