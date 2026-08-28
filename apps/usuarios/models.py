@@ -1,11 +1,8 @@
 """
-apps/usuarios/models.py
-
 Modelo de usuario personalizado del proyecto.
 """
 
 from datetime import timedelta
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone

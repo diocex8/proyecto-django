@@ -67,8 +67,8 @@ class InscripcionModificarSerializer(serializers.ModelSerializer):
 class InscripcionCrearSerializer(serializers.ModelSerializer):
     """
     Serializador para inscribir a un estudiante en un curso.
-    - Estudiantes: solo ven y eligen el curso (estudiante_id oculto). Su solicitud queda en estado PENDIENTE.
-    - Profesores / Administradores: pueden inscribir a un estudiante directamente (estado ACTIVA).
+    - Estudiantes y Profesores: solo eligen el curso, la solicitud queda en PENDIENTE.
+    - Administradores: pueden inscribir a un estudiante directamente con estado ACTIVA.
     """
     curso_id = serializers.PrimaryKeyRelatedField(
         queryset=Curso.objects.filter(estado=Curso.Estado.PUBLICADO),
@@ -80,7 +80,7 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         source='estudiante',
         required=False,
         allow_null=True,
-        help_text='(Solo Profesores/Admins) ID del estudiante a inscribir.',
+        help_text='(Solo Admins) ID del estudiante a inscribir.',
     )
 
     class Meta:
@@ -93,7 +93,8 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
             user = request.user
-            if getattr(user, 'es_estudiante', False):
+            # Solo los administradores ven el campo estudiante_id
+            if not getattr(user, 'es_administrador', False):
                 self.fields.pop('estudiante_id', None)
 
     def validate(self, attrs):
@@ -101,17 +102,14 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
         curso = attrs.get('curso')
         estudiante = attrs.get('estudiante')
 
-        if getattr(user, 'es_estudiante', False):
+        # Estudiantes y profesores se inscriben/solicitan a ellos mismos
+        if not getattr(user, 'es_administrador', False):
             estudiante = user
             attrs['estudiante'] = user
         else:
             if not estudiante:
                 raise serializers.ValidationError({
-                    'estudiante_id': 'Como profesor/administrador, debes seleccionar el estudiante a inscribir.'
-                })
-            if getattr(user, 'es_profesor', False) and not getattr(user, 'es_administrador', False) and curso.profesor != user:
-                raise serializers.ValidationError({
-                    'curso_id': 'Solo puedes inscribir estudiantes en tus propios cursos.'
+                    'estudiante_id': 'Como administrador, debes seleccionar el estudiante a inscribir.'
                 })
 
         # Verificar si ya existe una inscripcion previa
@@ -127,7 +125,7 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
                 )
             elif inscripcion_existente.estado == Inscripcion.Estado.PENDIENTE:
                 raise serializers.ValidationError(
-                    'Ya existe una solicitud de inscripcion pendiente para este curso. Espera la aprobacion del profesor.'
+                    'Ya existe una solicitud de inscripcion pendiente para este curso. Espera la aprobacion.'
                 )
             elif inscripcion_existente.estado in (Inscripcion.Estado.RETIRADA, Inscripcion.Estado.RECHAZADA):
                 attrs['inscripcion_reactivada'] = inscripcion_existente
@@ -143,7 +141,8 @@ class InscripcionCrearSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        nuevo_estado = Inscripcion.Estado.PENDIENTE if getattr(user, 'es_estudiante', False) else Inscripcion.Estado.ACTIVA
+        # Solo el admin puede inscribir directamente con estado ACTIVA
+        nuevo_estado = Inscripcion.Estado.ACTIVA if getattr(user, 'es_administrador', False) else Inscripcion.Estado.PENDIENTE
 
         inscripcion_reactivada = validated_data.pop('inscripcion_reactivada', None)
         if inscripcion_reactivada:
