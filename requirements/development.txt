@@ -1,11 +1,7 @@
-# Herramientas exclusivas del entorno de desarrollo
 -r base.txt
 
-# Depurador de consultas SQL (detecta N+1 y consultas lentas)
 django-debug-toolbar==4.4.6
 
-# Fabrica de objetos para pruebas unitarias
 factory-boy==3.3.1
 
-# Cobertura de pruebas
 coverage==7.6.10
