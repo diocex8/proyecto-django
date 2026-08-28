@@ -1,6 +1,4 @@
 """
-apps/usuarios/admin.py
-
 Registro del modelo Usuario en el panel de administracion de Django.
 """
 

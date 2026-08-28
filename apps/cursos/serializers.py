@@ -1,6 +1,4 @@
 """
-apps/cursos/serializers.py
-
 Serializadores del dominio de cursos.
 """
 

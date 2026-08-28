@@ -1,6 +1,4 @@
 """
-apps/inscripciones/models.py
-
 Modelo de inscripcion: tabla intermedia entre Curso y Estudiante.
 """
 

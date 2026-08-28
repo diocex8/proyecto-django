@@ -1,6 +1,4 @@
 """
-apps/asignaciones/serializers.py
-
 Serializadores del dominio de asignaciones y entregas.
 """
 

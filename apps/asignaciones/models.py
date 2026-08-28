@@ -1,6 +1,4 @@
 """
-apps/asignaciones/models.py
-
 Modelos de Asignacion y Entrega del dominio academico.
 """
 

@@ -1,6 +1,4 @@
 """
-apps/inscripciones/urls.py
-
 Enrutamiento del dominio de inscripciones.
 """
 

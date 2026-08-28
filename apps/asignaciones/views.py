@@ -1,6 +1,4 @@
 """
-apps/asignaciones/views.py
-
 Vistas del dominio de asignaciones y entregas.
 
 Los endpoints de Asignacion y Entrega estan anidados bajo Curso para

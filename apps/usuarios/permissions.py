@@ -1,6 +1,4 @@
 """
-apps/usuarios/permissions.py
-
 Permisos personalizados del sistema de usuarios.
 """
 

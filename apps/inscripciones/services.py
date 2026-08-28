@@ -1,6 +1,4 @@
 """
-apps/inscripciones/services.py
-
 Capa de servicio del dominio de inscripciones.
 """
 

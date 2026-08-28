@@ -1,6 +1,4 @@
 """
-apps/usuarios/views.py
-
 Vistas del dominio de usuarios.
 """
 

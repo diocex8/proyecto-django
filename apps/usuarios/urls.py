@@ -1,6 +1,4 @@
 """
-apps/usuarios/urls.py
-
 Enrutamiento del dominio de usuarios y autenticacion.
 """
 

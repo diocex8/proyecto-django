@@ -1,6 +1,4 @@
 """
-apps/asignaciones/services.py
-
 Capa de servicio del dominio de asignaciones y entregas.
 """
 

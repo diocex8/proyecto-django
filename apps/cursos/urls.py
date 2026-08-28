@@ -1,6 +1,4 @@
 """
-apps/cursos/urls.py
-
 Enrutamiento del dominio de cursos usando DefaultRouter.
 
 DefaultRouter genera automaticamente:

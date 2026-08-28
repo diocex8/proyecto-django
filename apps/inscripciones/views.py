@@ -1,6 +1,4 @@
 """
-apps/inscripciones/views.py
-
 Vistas del dominio de inscripciones.
 """
 

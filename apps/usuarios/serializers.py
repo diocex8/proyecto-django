@@ -1,6 +1,4 @@
 """
-apps/usuarios/serializers.py
-
 Serializadores del dominio de usuarios.
 
 Patron aplicado: Serializadores separados para lectura y escritura.

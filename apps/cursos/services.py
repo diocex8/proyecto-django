@@ -1,6 +1,4 @@
 """
-apps/cursos/services.py
-
 Capa de servicio del dominio de cursos.
 Logica de negocio reutilizable que no pertenece ni al modelo ni a la vista.
 """
