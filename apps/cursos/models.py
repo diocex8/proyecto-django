@@ -1,6 +1,4 @@
 """
-apps/cursos/models.py
-
 Modelos del dominio de cursos academicos.
 """
 
