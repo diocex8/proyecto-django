@@ -68,8 +68,8 @@ class Curso(models.Model):
     profesor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
-        # PROTECT en lugar de CASCADE: no se puede eliminar un usuario
-        # que tiene cursos activos. Esto evita borrados en cascada accidentales.
+        # no se puede eliminar un usuario
+        # tiene cursos activos. Esto evita borrados en cascada accidentales.
         related_name='cursos_como_profesor',
         verbose_name='Profesor',
         limit_choices_to={'rol': 'profesor'},
@@ -184,10 +184,7 @@ class Curso(models.Model):
         ).count()
 
     def publicar(self):
-        """
-        Metodo de negocio: publica el curso validando precondiciones.
-        La logica de transicion de estado vive en el modelo, no en la vista.
-        """
+        """Publica el curso si no esta archivado."""
         if self.estado == self.Estado.ARCHIVADO:
             raise ValueError('No se puede publicar un curso archivado.')
         self.estado = self.Estado.PUBLICADO
@@ -195,7 +192,7 @@ class Curso(models.Model):
         logger.info('Curso publicado. ID: %s, Codigo: %s', self.pk, self.codigo)
 
     def archivar(self):
-        """Metodo de negocio: archiva el curso."""
+        """Archiva el curso."""
         self.estado = self.Estado.ARCHIVADO
         self.save(update_fields=['estado', 'fecha_actualizacion'])
         logger.info('Curso archivado. ID: %s', self.pk)

@@ -1,9 +1,7 @@
 """
-apps/asignaciones/urls.py
-
 Enrutamiento del dominio de asignaciones y entregas.
 
-Los endpoints de entrega estan anidados bajo asignaciones:
+Los endpoints:
     /api/v1/asignaciones/
     /api/v1/asignaciones/{id}/
     /api/v1/asignaciones/{id}/entregas/

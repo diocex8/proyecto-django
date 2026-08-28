@@ -111,10 +111,7 @@ class Inscripcion(models.Model):
         logger.info('Inscripcion rechazada. ID: %s', self.pk)
 
     def retirar(self):
-        """
-        Metodo de negocio: cambia el estado a RETIRADA en lugar de eliminar.
-        Esto preserva el historial academico del estudiante.
-        """
+        """Cambia el estado a RETIRADA preservando el historial academico."""
         self.estado = self.Estado.RETIRADA
         self.save(update_fields=['estado', 'fecha_actualizacion'])
         logger.info(

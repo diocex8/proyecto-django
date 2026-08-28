@@ -244,11 +244,7 @@ class EntregaCrearSerializer(serializers.ModelSerializer):
 
 
 class CalificarEntregaSerializer(serializers.Serializer):
-    """
-    Serializador dedicado para que el profesor califique una entrega.
-    No es un ModelSerializer porque el proceso de calificacion implica
-    logica de negocio que delega al metodo Entrega.calificar().
-    """
+    """Serializa la calificacion de una entrega por el profesor."""
     calificacion = serializers.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -274,7 +270,7 @@ class CalificarEntregaSerializer(serializers.Serializer):
         return value
 
     def save(self, **kwargs):
-        """Delega la logica de negocio al metodo del modelo Entrega."""
+        """Guarda la calificacion en el modelo Entrega."""
         entrega = self.context['entrega']
         entrega.calificar(
             nota=self.validated_data['calificacion'],

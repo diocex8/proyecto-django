@@ -95,12 +95,8 @@ class Usuario(AbstractUser):
 
 class SolicitudProfesor(models.Model):
     """
-    Gestiona las solicitudes de registro para cuentas con rol Profesor.
-    
-    Reglas de negocio:
-    - Las cuentas de profesor se crean inactivas hasta ser aprobadas por un administrador.
-    - Solo se permite una solicitud de profesor por cuenta.
-    - Si es rechazada, se aplica un bloqueo de re-registro de 2 horas.
+    Solicitud de registro para cuentas con rol Profesor.
+    Las cuentas se crean inactivas hasta ser aprobadas por un administrador.
     """
 
     class Estado(models.TextChoices):

@@ -1,6 +1,5 @@
 """
 Vistas del dominio de los cursos
-
 """
 
 import logging

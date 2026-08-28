@@ -129,11 +129,7 @@ class Asignacion(models.Model):
 class Entrega(models.Model):
     """
     Entrega de un Estudiante para una Asignacion especifica.
-
-    Reglas de negocio implementadas a nivel de modelo:
-    - Un estudiante solo puede entregar una vez por asignacion (UniqueConstraint).
-    - La calificacion solo puede ser asignada por el profesor del curso.
-    - La nota no puede exceder el valor_maximo de la asignacion.
+    Un estudiante solo puede entregar una vez por asignacion.
     """
 
     class Estado(models.TextChoices):
@@ -225,10 +221,7 @@ class Entrega(models.Model):
         )
 
     def calificar(self, nota, retroalimentacion=''):
-        """
-        Metodo de negocio: califica la entrega con validacion de rango.
-        Permite asignar o modificar la calificacion.
-        """
+        """Califica la entrega con validacion de rango. Permite asignar o modificar la calificacion."""
         valor_maximo = self.asignacion.valor_maximo
         if float(nota) > float(valor_maximo):
             raise ValueError(
@@ -251,9 +244,6 @@ class Entrega(models.Model):
         )
 
     def devolver(self, retroalimentacion=''):
-        """
-        Metodo de negocio: devuelve la entrega al estudiante para que la vuelva a hacer.
-        """
         self.estado = self.Estado.DEVUELTA
         self.retroalimentacion = retroalimentacion
         self.calificacion = None
