@@ -1,4 +1,5 @@
 .agents
+FORME.md
 # Variables de entorno con credenciales reales
 .env
 .env.*
