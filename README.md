@@ -364,3 +364,77 @@ Para desplegar:
 1. En Render.com, selecciona **New +** -> **Blueprint**.
 2. Conecta el repositorio de GitHub.
 3. Render creara de forma 100% automatica la base de datos PostgreSQL, ejecutara las migraciones, recolectara los archivos estaticos y creara el superusuario inicial (`admin@admin.com` / `Admin123456!`).
+
+---
+
+## Listado Completo de Endpoints para Evaluacion
+
+A continuacion se detalla la lista estructurada de todos los endpoints disponibles en el proyecto, organizados por modulo, con su metodo HTTP, ruta, descripcion y nivel de acceso/rol requerido para su evaluacion:
+
+### 1. Autenticacion y Usuarios (`/api/v1/auth/`)
+
+| Metodo | URL Endpoint | Descripcion | Acceso / Rol |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/registro/` | Registro de nuevos usuarios (Estudiante o Profesor con solicitud) | Publico |
+| `POST` | `/api/v1/auth/token/` | Inicio de sesion / Obtencion de tokens JWT (`access` y `refresh`) | Publico |
+| `POST` | `/api/v1/auth/login/` | Alias para obtencion de token JWT | Publico |
+| `POST` | `/api/v1/auth/token/refresh/` | Renovacion de access token expirado usando refresh token | Publico |
+| `POST` | `/api/v1/auth/token/blacklist/` | Invalidacion (logout) de token JWT mediante blacklist | Autenticado |
+| `GET` | `/api/v1/auth/perfil/` | Consultar perfil del usuario autenticado + estadisticas | Autenticado |
+| `PATCH` | `/api/v1/auth/perfil/` | Actualizar datos personales del usuario autenticado | Autenticado |
+| `POST` | `/api/v1/auth/cambiar-password/` | Cambiar contrasena del usuario autenticado | Autenticado |
+
+### 2. Cursos Academicos (`/api/v1/cursos/`)
+
+| Metodo | URL Endpoint | Descripcion | Acceso / Rol |
+|---|---|---|---|
+| `GET` | `/api/v1/cursos/` | Listar todos los cursos (con filtros `estado`, `profesor`, busqueda `search` y ordenamiento `ordering`) | Autenticado (Estudiantes ven solo publicados) |
+| `POST` | `/api/v1/cursos/` | Crear un nuevo curso (nace en estado `pendiente` de aprobacion, respeta cooldown de max 3/hora) | Profesor / Admin |
+| `GET` | `/api/v1/cursos/{id}/` | Consultar detalle de un curso especifico | Autenticado |
+| `PUT` / `PATCH` | `/api/v1/cursos/{id}/` | Actualizar informacion del curso | Profesor Propietario / Admin |
+| `DELETE` | `/api/v1/cursos/{id}/` | Eliminar curso (solo si no tiene inscripciones activas) | Profesor Propietario / Admin |
+| `POST` | `/api/v1/cursos/{id}/cambiar-estado/` | Cambiar estado del curso (`borrador`, `publicado`, `archivado`) | Profesor Propietario / Admin |
+| `GET` | `/api/v1/cursos/{id}/asignaciones/` | Listar todas las asignaciones pertenecientes al curso | Estudiante inscrito / Profesor |
+| `GET` | `/api/v1/cursos/{id}/inscripciones/` | Listar estudiantes inscritos en el curso | Profesor Propietario / Admin |
+
+### 3. Inscripciones (`/api/v1/inscripciones/`)
+
+| Metodo | URL Endpoint | Descripcion | Acceso / Rol |
+|---|---|---|---|
+| `GET` | `/api/v1/inscripciones/` | Listar inscripciones (Estudiante ve las suyas; Profesor ve las de sus cursos; Admin ve todas) | Autenticado |
+| `POST` | `/api/v1/inscripciones/` | Enviar solicitud de inscripcion a un curso activo | Estudiante |
+| `GET` | `/api/v1/inscripciones/{id}/` | Ver detalle de una inscripcion especifica | Estudiante / Profesor Propietario |
+| `DELETE` | `/api/v1/inscripciones/{id}/` | Retirarse o cancelar inscripcion de un curso | Estudiante Propietario / Admin |
+| `POST` | `/api/v1/inscripciones/{id}/aprobar/` | Aprobar solicitud de inscripcion de un estudiante | Profesor Propietario / Admin |
+| `POST` | `/api/v1/inscripciones/{id}/rechazar/` | Rechazar solicitud de inscripcion de un estudiante | Profesor Propietario / Admin |
+
+### 4. Asignaciones y Tareas (`/api/v1/asignaciones/`)
+
+| Metodo | URL Endpoint | Descripcion | Acceso / Rol |
+|---|---|---|---|
+| `GET` | `/api/v1/asignaciones/` | Listar asignaciones/tareas (filtrable por `?curso=ID`, tipo, fecha) | Autenticado |
+| `POST` | `/api/v1/asignaciones/` | Crear nueva asignacion indicando `curso` en los datos o query param | Profesor Propietario / Admin |
+| `GET` | `/api/v1/asignaciones/{id}/` | Ver detalle completo de una asignacion especifica | Autenticado |
+| `PUT` / `PATCH` | `/api/v1/asignaciones/{id}/` | Actualizar titulo, descripcion, ponderacion o fecha limite | Profesor Propietario / Admin |
+| `DELETE` | `/api/v1/asignaciones/{id}/` | Eliminar una asignacion del curso | Profesor Propietario / Admin |
+
+### 5. Entregas y Calificaciones (`/api/v1/asignaciones/{id}/entregas/`)
+
+| Metodo | URL Endpoint | Descripcion | Acceso / Rol |
+|---|---|---|---|
+| `GET` | `/api/v1/asignaciones/{id}/entregas/` | Listar entregas (Profesor ve las de sus alumnos; Alumno ve las suyas) | Autenticado |
+| `POST` | `/api/v1/asignaciones/{id}/entregas/` | Enviar solucion a una asignacion antes de la fecha limite | Estudiante Inscrito |
+| `GET` | `/api/v1/asignaciones/{id}/entregas/{eid}/` | Ver solucion enviada y la nota/retroalimentacion otorgada | Alumno Propietario / Profesor |
+| `PUT` / `PATCH` | `/api/v1/asignaciones/{id}/entregas/{eid}/` | Modificar solucion enviada (si aun no esta calificada) | Alumno Propietario |
+| `DELETE` | `/api/v1/asignaciones/{id}/entregas/{eid}/` | Eliminar solucion enviada | Alumno Propietario / Admin |
+| `GET` / `PATCH` / `POST` | `/api/v1/asignaciones/{id}/entregas/{eid}/calificar/` | Asignar nota y retroalimentacion a la entrega de un alumno | Profesor Propietario / Admin |
+| `POST` | `/api/v1/asignaciones/{id}/estudiantes/{estudiante_id}/calificar/` | Calificar asignacion directamente seleccionando al estudiante por ID | Profesor Propietario / Admin |
+
+### 6. Administracion y Navegacion Web (`/`)
+
+| Metodo | URL Endpoint | Descripcion | Acceso / Rol |
+|---|---|---|---|
+| `GET` | `/` | Dashboard principal / Portal interactivo de la API | Publico |
+| `GET` | `/admin/` | Panel visual nativo de administracion de Django (gestion de modelos, aprobacion de cursos, solicitudes de profesor, desbloqueo de usuarios) | Administrador / Superusuario |
+| `GET` / `POST` | `/api-auth/login/` | Inicio de sesion en la interfaz navegable interactiva de DRF | Publico |
+| `GET` | `/api-auth/logout/` | Cierre de sesion en la interfaz navegable interactiva de DRF | Autenticado |
