@@ -57,6 +57,26 @@ class Usuario(AbstractUser):
         verbose_name='Ultima actualizacion',
     )
 
+    # Campos para sistema de prevencion de spam y cooldown
+    bloqueado_hasta = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Bloqueado hasta',
+        help_text='Si tiene fecha, el usuario no puede crear cursos hasta entonces.',
+    )
+    intentos_fallidos_creacion = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name='Intentos fallidos de creacion',
+        help_text='Rastrea cuántas veces intentó crear cursos evadiendo el cooldown.',
+    )
+
+    @property
+    def esta_bloqueado(self):
+        """Verifica si la cuenta esta temporalmente bloqueada."""
+        if not self.bloqueado_hasta:
+            return False
+        return timezone.now() < self.bloqueado_hasta
+
     # Usar email como campo de autenticacion en lugar de username
     USERNAME_FIELD = 'email'
 

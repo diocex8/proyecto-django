@@ -112,11 +112,48 @@ class CursoViewSet(viewsets.ModelViewSet):
 
         return queryset.none()
 
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        if user.esta_bloqueado:
+            from django.utils.timezone import localtime
+            return Response(
+                {"detail": f"Tu cuenta esta bloqueada temporalmente por intentos excesivos de creacion de cursos. Vuelve a intentar despues de {localtime(user.bloqueado_hasta).strftime('%H:%M')}."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Validar cooldown
+        from datetime import timedelta
+        from django.utils import timezone
+        hace_una_hora = timezone.now() - timedelta(hours=1)
+        cursos_recientes = Curso.objects.filter(profesor=user, fecha_creacion__gte=hace_una_hora).count()
+        
+        if cursos_recientes >= 3:
+            user.intentos_fallidos_creacion += 1
+            if user.intentos_fallidos_creacion >= 3:
+                user.bloqueado_hasta = timezone.now() + timedelta(minutes=30)
+                user.intentos_fallidos_creacion = 0
+                user.save(update_fields=['bloqueado_hasta', 'intentos_fallidos_creacion'])
+                return Response(
+                    {"detail": "Has insistido demasiado. Tu cuenta ha sido bloqueada por 30 minutos."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            user.save(update_fields=['intentos_fallidos_creacion'])
+            return Response(
+                {"detail": f"Has alcanzado el limite de creacion de cursos (3 por hora). Intento fallido {user.intentos_fallidos_creacion}/3 antes de bloqueo."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        response = super().create(request, *args, **kwargs)
+        if response.status_code == status.HTTP_201_CREATED and user.intentos_fallidos_creacion > 0:
+            user.intentos_fallidos_creacion = 0
+            user.save(update_fields=['intentos_fallidos_creacion'])
+        return response
+
     def perform_create(self, serializer):
-        """El profesor se asigna en el serializer desde request.user."""
-        curso = serializer.save()
+        """El profesor se asigna en el serializer desde request.user y nace en estado PENDIENTE."""
+        curso = serializer.save(estado=Curso.Estado.PENDIENTE)
         logger.info(
-            'Curso creado. ID: %s, Codigo: %s, Profesor: %s',
+            'Curso creado en estado PENDIENTE. ID: %s, Codigo: %s, Profesor: %s',
             curso.pk, curso.codigo, self.request.user.email,
         )
 

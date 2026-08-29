@@ -59,6 +59,7 @@ class Curso(models.Model):
     """
 
     class Estado(models.TextChoices):
+        PENDIENTE = 'pendiente', 'Pendiente de Aprobacion'
         BORRADOR = 'borrador', 'Borrador'
         PUBLICADO = 'publicado', 'Publicado'
         ARCHIVADO = 'archivado', 'Archivado'

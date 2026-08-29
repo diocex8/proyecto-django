@@ -18,16 +18,18 @@ class UsuarioAdmin(UserAdmin):
     """
 
     # Columnas visibles en la lista de usuarios
-    list_display = ('email', 'get_full_name', 'rol', 'is_active', 'fecha_registro')
+    list_display = ('email', 'get_full_name', 'rol', 'is_active', 'bloqueado_hasta', 'fecha_registro')
     list_filter = ('rol', 'is_active', 'is_staff')
     search_fields = ('email', 'first_name', 'last_name', 'username')
     ordering = ('-fecha_registro',)
+    actions = ['desbloquear_usuarios']
 
     # Campos que se muestran al editar un usuario existente
     fieldsets = (
         (None, {'fields': ('email', 'username', 'password')}),
         (_('Informacion personal'), {'fields': ('first_name', 'last_name')}),
         (_('Rol del sistema'), {'fields': ('rol',)}),
+        (_('Seguridad y Penalizaciones'), {'fields': ('bloqueado_hasta', 'intentos_fallidos_creacion')}),
         (_('Permisos'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
         }),
@@ -43,6 +45,11 @@ class UsuarioAdmin(UserAdmin):
     )
 
     readonly_fields = ('fecha_registro', 'ultima_actualizacion')
+
+    @admin.action(description='Desbloquear usuarios seleccionados')
+    def desbloquear_usuarios(self, request, queryset):
+        queryset.update(bloqueado_hasta=None, intentos_fallidos_creacion=0)
+        self.message_user(request, f'Se han desbloqueado {queryset.count()} usuario(s).')
 
 
 @admin.register(SolicitudProfesor)
