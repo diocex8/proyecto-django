@@ -1,6 +1,4 @@
 """
-config/urls.py
-
 Enrutador principal del proyecto.
 Cada aplicacion registra sus propias URLs en su archivo urls.py
 y aqui se incluyen con un prefijo semantico.
