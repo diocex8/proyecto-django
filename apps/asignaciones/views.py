@@ -10,7 +10,7 @@ reflejar la jerarquia del dominio:
 
 import logging
 
-from django.db.models import Count
+from django.db.models import Count, Prefetch
 from django.utils.safestring import mark_safe
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status, filters
@@ -79,26 +79,95 @@ class AsignacionListaCrearView(generics.ListCreateAPIView):
 
         elif user and user.is_authenticated and getattr(user, 'es_estudiante', False):
             from apps.cursos.models import Curso
+            from apps.asignaciones.models import Asignacion, Entrega
+            from apps.inscripciones.models import Inscripcion
+
+            curso_filtro = getattr(self, 'request', None) and self.request.GET.get('curso')
+
             cursos = Curso.objects.filter(
                 inscripciones__estudiante=user,
                 inscripciones__estado=Inscripcion.Estado.ACTIVA,
             ).order_by('nombre')
 
             buttons_html = '<div style="margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px;">'
-            buttons_html += '<a href="/api/v1/asignaciones/" style="background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Ver Todas</a>'
+            all_active_style = "background: #0f172a; color: #ffffff;" if not curso_filtro else "background: #e2e8f0; color: #334155;"
+            buttons_html += f'<a href="/api/v1/asignaciones/" style="{all_active_style} padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Ver Todas</a>'
             for c in cursos:
-                buttons_html += f'<a href="/api/v1/asignaciones/?curso={c.id}" style="background: #2563eb; color: #ffffff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Curso {c.codigo}: {c.nombre}</a>'
+                c_active_style = "background: #2563eb; color: #ffffff;" if str(c.id) == str(curso_filtro) else "background: #e2e8f0; color: #334155;"
+                buttons_html += f'<a href="/api/v1/asignaciones/?curso={c.id}" style="{c_active_style} padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block;">Curso {c.codigo}: {c.nombre}</a>'
             buttons_html += '</div>'
+
+            asignaciones_qs = Asignacion.objects.filter(
+                curso__inscripciones__estudiante=user,
+                curso__inscripciones__estado=Inscripcion.Estado.ACTIVA
+            ).select_related('curso').prefetch_related(
+                Prefetch(
+                    'entregas',
+                    queryset=Entrega.objects.filter(estudiante=user),
+                    to_attr='mi_entrega'
+                )
+            ).order_by('fecha_entrega')
+
+            if curso_filtro:
+                asignaciones_qs = asignaciones_qs.filter(curso_id=curso_filtro)
+
+            cards_html = '<div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">'
+            if not asignaciones_qs:
+                cards_html += '<div style="background:#f1f5f9; padding:16px; border-radius:8px; text-align:center; color:#64748b; font-size:13px; border:1px solid #e2e8f0;">No tienes tareas asignadas en este momento.</div>'
+
+            for asig in asignaciones_qs:
+                mi_entrega = asig.mi_entrega[0] if asig.mi_entrega else None
+                
+                estado_html = ""
+                nota_html = ""
+                botones_html = ""
+                
+                if mi_entrega:
+                    estado_texto = mi_entrega.get_estado_display()
+                    color_estado = "#16a34a" if mi_entrega.estado == Entrega.Estado.CALIFICADA else ("#d97706" if mi_entrega.estado == Entrega.Estado.DEVUELTA else "#2563eb")
+                    estado_html = f'<span style="background:{color_estado}; color:white; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold; text-transform:uppercase;">{estado_texto}</span>'
+                    
+                    if mi_entrega.estado == Entrega.Estado.CALIFICADA and mi_entrega.calificacion is not None:
+                        nota_html = f'<div style="margin-top:8px; font-size:13px;"><strong>Calificacion:</strong> <span style="color:#16a34a; font-weight:bold; font-size:14px;">{mi_entrega.calificacion} / {asig.valor_maximo}</span></div>'
+                    
+                    if mi_entrega.retroalimentacion:
+                        nota_html += f'<div style="margin-top:4px; font-size:12px; background:#f8fafc; padding:8px; border-radius:4px; border-left:3px solid #3b82f6;"><strong>Retroalimentacion del profesor:</strong> {mi_entrega.retroalimentacion}</div>'
+                        
+                    botones_html = f'<a href="/api/v1/asignaciones/{asig.id}/entregas/{mi_entrega.id}/" style="background:#0f172a; color:white; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; text-decoration:none;">Ver Detalles de Entrega</a>'
+                else:
+                    estado_html = '<span style="background:#dc2626; color:white; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold; text-transform:uppercase;">Sin entregar</span>'
+                    botones_html = f'<a href="/api/v1/asignaciones/{asig.id}/entregas/" style="background:#2563eb; color:white; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; text-decoration:none;">Entregar Solucion</a>'
+                
+                fecha_lim = asig.fecha_entrega.strftime('%d/%m/%Y %H:%M') if asig.fecha_entrega else 'Sin limite'
+                cards_html += f"""
+                <div style="background:white; border:1px solid #e2e8f0; padding:16px; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <div style="color:#3b82f6; font-size:12px; font-weight:600; margin-bottom:2px;">{asig.curso.codigo} - {asig.curso.nombre}</div>
+                            <div style="font-size:15px; font-weight:bold; color:#0f172a; margin-bottom:4px;">{asig.titulo}</div>
+                            <div style="font-size:12px; color:#64748b;">Fecha limite: {fecha_lim} | Ponderacion: {asig.porcentaje}%</div>
+                        </div>
+                        <div>
+                            {estado_html}
+                        </div>
+                    </div>
+                    {nota_html}
+                    <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+                        {botones_html}
+                    </div>
+                </div>
+                """
+            cards_html += '</div>'
 
             content = (
                 '<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
                 '<h3 style="margin-top: 0; color: #0f172a;">Mis Asignaciones Academicas</h3>'
                 '<p style="color: #475569; margin-bottom: 10px; font-size: 14px;">'
-                '1. Revisa las tareas pendientes de tus cursos en la lista inferior.<br>'
-                '2. Haz clic en el enlace <code>url_entrega</code> de la tarea para enviar tu solucion.'
+                'Aqui puedes ver todas tus tareas, si ya las entregaste, su nota y la retroalimentacion del profesor.'
                 '</p>'
                 '<h4 style="margin: 12px 0 6px 0; color: #1e293b;">Filtrar por curso (Haz clic):</h4>'
                 f'{buttons_html}'
+                f'{cards_html}'
                 '</div>'
             )
             return mark_safe(content) if html else "Mis Asignaciones Academicas"
