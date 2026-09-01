@@ -373,3 +373,24 @@ class CambiarPasswordSerializer(serializers.Serializer):
         usuario.save(update_fields=['password'])
         logger.info('Contrasena cambiada para el usuario ID: %s', usuario.pk)
         return usuario
+
+
+class SolicitudProfesorListaSerializer(serializers.ModelSerializer):
+    nombre_completo = serializers.CharField(source='usuario.get_full_name', read_only=True)
+    username = serializers.CharField(source='usuario.username', read_only=True)
+
+    class Meta:
+        model = SolicitudProfesor
+        fields = (
+            'id', 'email', 'username', 'nombre_completo',
+            'estado', 'fecha_solicitud', 'fecha_resolucion', 'motivo_rechazo'
+        )
+        read_only_fields = fields
+
+
+class RechazarSolicitudSerializer(serializers.Serializer):
+    motivo = serializers.CharField(
+        required=True,
+        help_text='Motivo por el cual se rechaza la solicitud.',
+        style={'base_template': 'textarea.html'}
+    )

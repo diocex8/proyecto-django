@@ -136,3 +136,15 @@ class EsPropietarioDeLaEntrega(BasePermission):
             return obj.asignacion.curso.profesor == user
 
         return False
+
+
+class EsAdministrador(BasePermission):
+    """Permite acceso solo a usuarios con rol 'administrador' o superusuario."""
+    message = 'Solo los administradores pueden realizar esta accion.'
+
+    def has_permission(self, request, view):
+        return (
+            request.user
+            and request.user.is_authenticated
+            and (request.user.es_administrador or request.user.is_superuser)
+        )

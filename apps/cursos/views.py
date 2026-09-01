@@ -17,6 +17,7 @@ from apps.usuarios.permissions import (
     EsProfesorOSoloLectura,
     EsPropietarioDelCurso,
     EsEstudianteInscritoOProfesorPropietario,
+    EsAdministrador as EsAdministradorPermiso,
 )
 from .models import Curso
 from .serializers import (
@@ -117,16 +118,24 @@ class CursoViewSet(viewsets.ModelViewSet):
         if user.esta_bloqueado:
             from django.utils.timezone import localtime
             return Response(
-                {"detail": f"Tu cuenta esta bloqueada temporalmente por intentos excesivos de creacion de cursos. Vuelve a intentar despues de {localtime(user.bloqueado_hasta).strftime('%H:%M')}."},
+                {"detail": f"Tu cuenta esta bloqueada temporalmente. Vuelve a intentar despues de {localtime(user.bloqueado_hasta).strftime('%H:%M')}."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
-        # Validar cooldown
+
+        # Validar max 2 cursos PENDIENTES simultáneos
+        cursos_pendientes = Curso.objects.filter(profesor=user, estado=Curso.Estado.PENDIENTE).count()
+        if cursos_pendientes >= 2:
+            return Response(
+                {"detail": "Ya tienes 2 solicitudes de curso pendientes de aprobacion. Debes esperar a que un administrador apruebe al menos una antes de enviar otra."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        # Validar cooldown horario
         from datetime import timedelta
         from django.utils import timezone
         hace_una_hora = timezone.now() - timedelta(hours=1)
         cursos_recientes = Curso.objects.filter(profesor=user, fecha_creacion__gte=hace_una_hora).count()
-        
+
         if cursos_recientes >= 3:
             user.intentos_fallidos_creacion += 1
             if user.intentos_fallidos_creacion >= 3:
@@ -139,7 +148,7 @@ class CursoViewSet(viewsets.ModelViewSet):
                 )
             user.save(update_fields=['intentos_fallidos_creacion'])
             return Response(
-                {"detail": f"Has alcanzado el limite de creacion de cursos (3 por hora). Intento fallido {user.intentos_fallidos_creacion}/3 antes de bloqueo."},
+                {"detail": f"Limite de cursos por hora alcanzado (3/hora). Intento fallido {user.intentos_fallidos_creacion}/3 antes de bloqueo."},
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
 
@@ -355,3 +364,55 @@ class CursoViewSet(viewsets.ModelViewSet):
         pagina = paginator.paginate_queryset(inscripciones, request)
         serializer = InscripcionListaSerializer(pagina, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+
+class CursoPendienteViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para que los administradores gestionen los cursos pendientes de aprobacion.
+    GET  /api/v1/cursos-pendientes/
+    POST /api/v1/cursos-pendientes/{id}/aprobar/
+    POST /api/v1/cursos-pendientes/{id}/rechazar/
+    """
+    serializer_class = CursoListaSerializer
+    permission_classes = [IsAuthenticated, EsAdministradorPermiso]
+
+    def get_queryset(self):
+        return Curso.objects.filter(
+            estado=Curso.Estado.PENDIENTE
+        ).select_related('profesor').annotate(
+            total_inscritos_anotado=Count(
+                'inscripciones',
+                filter=Q(inscripciones__estado=Inscripcion.Estado.ACTIVA),
+                distinct=True,
+            ),
+            total_asignaciones_anotado=Count('asignaciones', distinct=True),
+        ).order_by('fecha_creacion')
+
+    @action(detail=True, methods=['post'])
+    def aprobar(self, request, pk=None):
+        """Aprueba un curso pendiente pasandolo a estado Borrador."""
+        curso = self.get_object()
+        if curso.estado != Curso.Estado.PENDIENTE:
+            return Response(
+                {'detail': 'Solo se pueden aprobar cursos en estado Pendiente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        curso.estado = Curso.Estado.BORRADOR
+        curso.save(update_fields=['estado'])
+        logger.info('Curso aprobado por admin. ID: %s, Admin: %s', curso.pk, request.user.email)
+        return Response({'detail': f'Curso "{curso.nombre}" aprobado. Ahora esta en estado Borrador y el profesor puede editarlo.'})
+
+    @action(detail=True, methods=['post'])
+    def rechazar(self, request, pk=None):
+        """Rechaza y elimina un curso pendiente."""
+        curso = self.get_object()
+        if curso.estado != Curso.Estado.PENDIENTE:
+            return Response(
+                {'detail': 'Solo se pueden rechazar cursos en estado Pendiente.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        nombre = curso.nombre
+        profesor = curso.profesor.email
+        curso.delete()
+        logger.info('Curso rechazado y eliminado por admin. Nombre: %s, Profesor: %s, Admin: %s', nombre, profesor, request.user.email)
+        return Response({'detail': f'Curso "{nombre}" rechazado y eliminado.'}, status=status.HTTP_200_OK)

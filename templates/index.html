@@ -473,6 +473,20 @@
                 <span class="nav-icon">🛡</span>
                 Panel Admin
             </a>
+            <a href="/api/v1/auth/solicitudes/" class="nav-item">
+                <span class="nav-icon">👨‍🏫</span>
+                Solicitudes Prof.
+                {% if total_solicitudes_pendientes > 0 %}
+                <span style="background:#dc2626;color:#fff;border-radius:999px;font-size:0.6rem;font-weight:700;padding:1px 6px;margin-left:auto;">{{ total_solicitudes_pendientes }}</span>
+                {% endif %}
+            </a>
+            <a href="/api/v1/cursos-pendientes/" class="nav-item">
+                <span class="nav-icon">⏳</span>
+                Cursos Pendientes
+                {% if total_cursos_pendientes > 0 %}
+                <span style="background:#d97706;color:#fff;border-radius:999px;font-size:0.6rem;font-weight:700;padding:1px 6px;margin-left:auto;">{{ total_cursos_pendientes }}</span>
+                {% endif %}
+            </a>
             {% endif %}
         </nav>
 
@@ -589,6 +603,30 @@
                         <a href="/admin/" class="stat-btn red">Abrir Panel</a>
                     </div>
                 </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background:#fef3c7;color:#92400e;">👨‍🏫</div>
+                        <div class="stat-count">{{ total_solicitudes_pendientes }}</div>
+                        <div class="stat-label">Solicitudes Prof.</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/api/v1/auth/solicitudes/" class="stat-btn amber">Ver Solicitudes</a>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background:#fef9c3;color:#78350f;">⏳</div>
+                        <div class="stat-count">{{ total_cursos_pendientes }}</div>
+                        <div class="stat-label">Cursos Pendientes</div>
+                    </div>
+                    <hr class="stat-divider">
+                    <div class="stat-card-footer">
+                        <a href="/api/v1/cursos-pendientes/" class="stat-btn" style="background:#d97706;color:white;">Aprobar Cursos</a>
+                    </div>
+                </div>
                 {% endif %}
 
             </div>
@@ -642,9 +680,15 @@
                         <div class="quick-card-icon" style="background:#fee2e2; color:#b91c1c; width:40px; height:40px; border-radius:0.5rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem;">🛡</div>
                         <div class="quick-card-title">Administracion</div>
                     </div>
-                    <p class="quick-card-desc">Accede al panel de administracion de Django para gestionar usuarios, permisos y datos del sistema.</p>
+                    <p class="quick-card-desc">Gestiona usuarios, aprueba cuentas de profesores y solicitudes de nuevos cursos desde la API interactiva.</p>
                     <div class="quick-btn-group">
-                        <a href="/admin/" class="quick-btn quick-btn-admin">Panel de Administrador</a>
+                        <a href="/api/v1/auth/solicitudes/" class="quick-btn" style="background:#d97706;color:white;">👨‍🏫 Solicitudes de Profesores
+                            {% if total_solicitudes_pendientes > 0 %} ({{ total_solicitudes_pendientes }}){% endif %}
+                        </a>
+                        <a href="/api/v1/cursos-pendientes/" class="quick-btn" style="background:#78350f;color:white;">⏳ Cursos por Aprobar
+                            {% if total_cursos_pendientes > 0 %} ({{ total_cursos_pendientes }}){% endif %}
+                        </a>
+                        <a href="/admin/" class="quick-btn quick-btn-admin">Panel Django Admin</a>
                     </div>
                 </div>
                 {% endif %}

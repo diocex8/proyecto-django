@@ -27,6 +27,9 @@ urlpatterns = [
     # Endpoints de cursos
     path('api/v1/cursos/', include('apps.cursos.urls')),
 
+    # Endpoints de cursos pendientes de aprobacion (solo admin)
+    path('api/v1/cursos-pendientes/', include('apps.cursos.urls_pendientes')),
+
     # Endpoints de inscripciones
     path('api/v1/inscripciones/', include('apps.inscripciones.urls')),
 

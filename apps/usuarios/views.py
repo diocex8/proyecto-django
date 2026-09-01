@@ -4,7 +4,9 @@ Vistas del dominio de usuarios.
 
 import logging
 
-from rest_framework import generics, status
+from django.db import models
+from rest_framework import generics, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,7 +19,10 @@ from .serializers import (
     RegistroUsuarioSerializer,
     ActualizarPerfilSerializer,
     CambiarPasswordSerializer,
+    SolicitudProfesorListaSerializer,
+    RechazarSolicitudSerializer,
 )
+from .permissions import EsAdministrador
 from .services import obtener_estadisticas_estudiante, obtener_estadisticas_profesor
 
 logger = logging.getLogger('gestion_academica')
@@ -150,3 +155,50 @@ class CambiarPasswordView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class SolicitudProfesorViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet para que los administradores gestionen las solicitudes de profesores.
+    GET /api/v1/auth/solicitudes/
+    """
+    serializer_class = SolicitudProfesorListaSerializer
+    permission_classes = [IsAuthenticated, EsAdministrador]
+
+    def get_queryset(self):
+        # Muestra todas las solicitudes (pendientes primero)
+        from .models import SolicitudProfesor
+        return SolicitudProfesor.objects.all().select_related('usuario').order_by(
+            models.Case(
+                models.When(estado=SolicitudProfesor.Estado.PENDIENTE, then=0),
+                default=1
+            ),
+            '-fecha_solicitud'
+        )
+
+    @action(detail=True, methods=['post'])
+    def aprobar(self, request, pk=None):
+        solicitud = self.get_object()
+        if solicitud.estado != solicitud.Estado.PENDIENTE:
+            return Response(
+                {'detail': 'Solo se pueden aprobar solicitudes pendientes.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        solicitud.aceptar()
+        return Response({'detail': f'Solicitud de {solicitud.email} aprobada. Cuenta activada.'})
+
+    @action(detail=True, methods=['post'], serializer_class=RechazarSolicitudSerializer)
+    def rechazar(self, request, pk=None):
+        solicitud = self.get_object()
+        if solicitud.estado != solicitud.Estado.PENDIENTE:
+            return Response(
+                {'detail': 'Solo se pueden rechazar solicitudes pendientes.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        motivo = serializer.validated_data['motivo']
+        
+        solicitud.rechazar(motivo)
+        return Response({'detail': f'Solicitud rechazada. Usuario bloqueado por 2 horas.'})
