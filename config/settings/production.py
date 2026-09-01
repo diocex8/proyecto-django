@@ -6,7 +6,6 @@ Configuracion exclusiva del entorno de PRODUCCION.
 
 from .base import *  # noqa: F401, F403
 import environ
-import os
 from pathlib import Path
 
 DEBUG = False

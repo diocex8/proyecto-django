@@ -4,7 +4,6 @@ Capa de servicio del dominio de inscripciones.
 
 import logging
 
-from django.db.models import Avg, Count, Q
 
 logger = logging.getLogger('gestion_academica')
 

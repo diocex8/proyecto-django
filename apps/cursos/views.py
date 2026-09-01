@@ -4,7 +4,7 @@ Vistas del dominio de los cursos
 
 import logging
 
-from django.db.models import Count, Q, Prefetch
+from django.db.models import Count, Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
@@ -14,9 +14,7 @@ from rest_framework.response import Response
 from apps.inscripciones.models import Inscripcion
 from apps.usuarios.permissions import (
     EsProfesor,
-    EsProfesorOSoloLectura,
     EsPropietarioDelCurso,
-    EsEstudianteInscritoOProfesorPropietario,
     EsAdministrador as EsAdministradorPermiso,
 )
 from .models import Curso
@@ -300,17 +298,17 @@ class CursoViewSet(viewsets.ModelViewSet):
             html_out += '</div>'
             return mark_safe(html_out)
 
-        html_out = f'<div style="background: #fefce8; border: 1px solid #fef08a; padding: 14px; border-radius: 8px; margin-bottom: 16px;">'
+        html_out = '<div style="background: #fefce8; border: 1px solid #fef08a; padding: 14px; border-radius: 8px; margin-bottom: 16px;">'
         html_out += f'<h4 style="margin: 0 0 10px 0; color: #854d0e; font-size: 14px; font-weight: 700;">{titulo}</h4>'
         html_out += '<div style="display: flex; flex-direction: column; gap: 8px;">'
         for sol in solicitudes[:10]:
             est_nom = sol.estudiante.get_full_name() or sol.estudiante.username
-            html_out += f'<div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #fde047; font-size: 13px;">'
+            html_out += '<div style="display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 8px 12px; border-radius: 6px; border: 1px solid #fde047; font-size: 13px;">'
             html_out += f'<div><strong>{est_nom}</strong> ({sol.estudiante.email}) &rarr; <em>{sol.curso.nombre}</em></div>'
-            html_out += f'<div style="display: flex; gap: 6px;">'
+            html_out += '<div style="display: flex; gap: 6px;">'
             html_out += f'<a href="/api/v1/inscripciones/{sol.id}/aprobar/" style="background: #16a34a; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">Aceptar</a>'
             html_out += f'<a href="/api/v1/inscripciones/{sol.id}/rechazar/" style="background: #dc2626; color: #ffffff; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">Rechazar</a>'
-            html_out += f'</div></div>'
+            html_out += '</div></div>'
         html_out += '</div></div>'
         return mark_safe(html_out)
 

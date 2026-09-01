@@ -12,7 +12,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .models import Usuario
 from .serializers import (
     TokenPersonalizadoObtainSerializer,
     UsuarioDetalleSerializer,
@@ -201,4 +200,4 @@ class SolicitudProfesorViewSet(viewsets.ReadOnlyModelViewSet):
         motivo = serializer.validated_data['motivo']
         
         solicitud.rechazar(motivo)
-        return Response({'detail': f'Solicitud rechazada. Usuario bloqueado por 2 horas.'})
+        return Response({'detail': 'Solicitud rechazada. Usuario bloqueado por 2 horas.'})

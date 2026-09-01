@@ -6,7 +6,6 @@ import logging
 
 from django.db.models import Count, Avg, Q
 
-from .models import Usuario
 
 logger = logging.getLogger('gestion_academica')
 
