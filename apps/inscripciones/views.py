@@ -89,7 +89,7 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
         nombres_estudiantes = set()
         for insc in inscripciones_qs:
             est = insc.estudiante
-            nom = est.get_full_name() or est.username
+            nom = est.get_full_name()
             nombres_estudiantes.add(nom)
             if est.email:
                 nombres_estudiantes.add(est.email)
@@ -121,7 +121,7 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
 
         for insc in inscripciones_qs[:60]:
             est = insc.estudiante
-            est_nom = est.get_full_name() or est.username
+            est_nom = est.get_full_name()
             stats = insc.calcular_estadisticas_academicas()
             rendimiento = stats['estado_rendimiento']
             badge_color = "#16a34a" if "Aprobando" in rendimiento and "riesgo" not in rendimiento else ("#d97706" if "riesgo" in rendimiento else "#dc2626")
@@ -244,7 +244,7 @@ class InscripcionListaCrearView(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         inscripcion = serializer.save()
-        estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+        estudiante_nombre = inscripcion.estudiante.get_full_name()
 
         if inscripcion.estado == Inscripcion.Estado.PENDIENTE:
             mensaje = f'Solicitud de inscripcion enviada exitosamente para el curso "{inscripcion.curso.nombre}". Debes esperar la aceptacion del profesor.'
@@ -314,7 +314,7 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
         card_perfil = (
             f'<div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 18px; border-radius: 8px; margin-bottom: 16px;">'
             f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">'
-            f'<h3 style="margin: 0; color: #0f172a;">Estudiante: {est.get_full_name() or est.username} ({est.email})</h3>'
+            f'<h3 style="margin: 0; color: #0f172a;">Estudiante: {est.get_full_name()} ({est.email})</h3>'
             f'<div>'
             f'<span style="background: {estado_badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-right: 6px;">{inscripcion.get_estado_display()}</span>'
             f'<span style="background: {badge_color}; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">{rendimiento}</span>'
@@ -514,7 +514,7 @@ class InscripcionDetalleRetirarView(generics.RetrieveUpdateDestroyAPIView):
             )
 
         inscripcion.retirar()
-        estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+        estudiante_nombre = inscripcion.estudiante.get_full_name()
         return Response(
             {
                 'exito': True,
@@ -553,7 +553,7 @@ class AprobarInscripcionView(generics.GenericAPIView):
             return Response({'error': f'Solo se pueden aprobar inscripciones en estado PENDIENTE. Estado actual: {inscripcion.get_estado_display()}'}, status=status.HTTP_400_BAD_REQUEST)
 
         inscripcion.activar()
-        estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+        estudiante_nombre = inscripcion.estudiante.get_full_name()
         return Response({
             'exito': True,
             'mensaje': f'Inscripcion del estudiante "{estudiante_nombre}" en el curso "{inscripcion.curso.nombre}" aprobada y activada exitosamente.',
@@ -594,7 +594,7 @@ class RechazarInscripcionView(generics.GenericAPIView):
             return Response({'error': 'No se puede rechazar una inscripcion ya activa.'}, status=status.HTTP_400_BAD_REQUEST)
 
         inscripcion.rechazar()
-        estudiante_nombre = inscripcion.estudiante.get_full_name() or inscripcion.estudiante.username
+        estudiante_nombre = inscripcion.estudiante.get_full_name()
         return Response({
             'exito': True,
             'mensaje': f'Solicitud de inscripcion del estudiante "{estudiante_nombre}" para el curso "{inscripcion.curso.nombre}" ha sido rechazada.',

@@ -166,6 +166,14 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
         default=Usuario.Rol.ESTUDIANTE,
         help_text='Rol para el registro: solo se permite estudiante o profesor.',
     )
+    first_name = serializers.CharField(
+        required=True,
+        help_text='Nombre(s) del usuario.'
+    )
+    last_name = serializers.CharField(
+        required=True,
+        help_text='Apellido(s) del usuario.'
+    )
     password = serializers.CharField(
         write_only=True,
         min_length=5,
@@ -182,7 +190,7 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
         model = Usuario
         fields = (
             'email', 'username', 'first_name', 'last_name',
-            'rol', 'password', 'password_confirmacion',
+            'rol', 'password', 'password_confirmacion'
         )
         extra_kwargs = {
             'email': {'validators': []},
