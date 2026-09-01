@@ -183,6 +183,20 @@ TRANSICIONES_VALIDAS = {
 
 - **Razón:** En vez de confiar en que el Frontend mandará las cosas correctas, el backend tiene un diccionario estricto. Si un curso está en estado `ARCHIVADO`, la lista de a dónde puede ir está vacía `[]`. Si alguien intenta publicarlo, el backend lee este diccionario y lanza un error de validación automático (como el que te ocurrió a ti como administrador). Esto garantiza una total integridad de los datos, simulando una pequeña **Máquina de Estados**.
 
+### 7.4. Lógica Especial en las Vistas (HTML Inyectado y Sobrescritura)
+
+Si revisas las vistas de este proyecto (como `apps/inscripciones/views.py` o `apps/asignaciones/views.py`), notarás algunas decisiones de diseño que van más allá del uso tradicional de DRF (Django REST Framework):
+
+1. **`get_view_description(self, html=False)` (Inyección de Interfaces Visuales):**
+   - **Qué hace:** Normalmente, esta función de DRF devuelve una cadena de texto simple para documentar el endpoint en la interfaz interactiva web (la Browsable API). En nuestro proyecto, la **sobreescribimos radicalmente** para inyectar código HTML puro (botones estilizados, tarjetas de estadísticas de notas, colores condicionales según el rendimiento del estudiante, etc.).
+   - **Por qué se usó:** Esto permitió construir un **Dashboard Interno completamente funcional y estético sin necesidad de programar un frontend separado (como React o Vue) ni depender del panel del Django Admin**. Al entrar a las URLs de la API desde el navegador, el usuario (Profesor o Estudiante) interactúa con botones visuales que aplican filtros (ej. `?curso=5`) generados desde el backend. Es una técnica extremadamente creativa que ahorra tiempo de desarrollo frontend.
+
+2. **`get_serializer_class(self)` Dinámico:**
+   - **Qué hace:** Cambia el Serializer "al vuelo" dependiendo de la acción que se está intentando hacer. Si se hace un `GET` (Listar), devuelve mucha información (nombres, fechas, promedios) usando un Serializer de Lectura. Si se hace un `POST` (Crear), usa un Serializer de Escritura que solo pide los datos estrictamente necesarios (ej. `curso_id`).
+
+3. **Sobrescritura de métodos `update()` y `create()`:**
+   - DRF ya trae métodos genéricos prefabricados. Nosotros los sobreescribimos manualmente en varias vistas para poder devolver respuestas en JSON amigables y personalizadas como: `{"exito": true, "mensaje": "Se inscribió exitosamente"}` en lugar del formato por defecto de DRF que suele ser mucho más plano.
+
 ---
 
 ## 8. Glosario Rápido para Exposición
