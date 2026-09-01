@@ -4,7 +4,7 @@ Serializadores del dominio de usuarios.
 Patron aplicado: Serializadores separados para lectura y escritura.
     - Lectura: Serializadores anidados y con campos calculados (SerializerMethodField).
       Son ricos en informacion pero de solo salida.
-    - Escritura: Serializadores planos que validan entrada y aplican logica de negocio.
+    - Escritura: Serializadores planos que validan entrada y aplican funciones.
       Son simples, rapidos y con validaciones estrictas.
 
     Esta separacion evita el anti-patron de tener un unico serializador

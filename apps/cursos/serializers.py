@@ -121,7 +121,7 @@ class CursoCrearActualizarSerializer(serializers.ModelSerializer):
 class CambiarEstadoCursoSerializer(serializers.Serializer):
     """
     Serializador para el endpoint de cambio de estado de un curso.
-    Valida que la transicion de estado sea valida segun las reglas de negocio.
+    Valida que la transicion de estado sea valida.
     """
     TRANSICIONES_VALIDAS = {
         Curso.Estado.BORRADOR: [Curso.Estado.PUBLICADO],

@@ -1,5 +1,6 @@
 .agents
 FORME.md
+EXPLICACION_API.md
 # Variables de entorno con credenciales reales
 .env
 .env.*
